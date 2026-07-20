@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>⛧ 𝖔𝖈𝖙𝖔𝖕𝖚𝖘 ♆ · مولد QR</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ================================================================
+           ROOT – الجوهرة الحمراء (كاتم غامق)
+           ================================================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --blood-dark: #1a0000;
+            --blood-deep: #3a0000;
+            --blood-mid: #6a0a0a;
+            --blood-bright: #aa0a0a;
+            --blood-pure: #cc0a0a;
+            --blood-glow: rgba(204, 10, 10, 0.7);
+            --hellfire: #ff3300;
+            --hellfire-glow: rgba(255, 51, 0, 0.6);
+            --gold-molten: #d4a843;
+            --gold-glow: rgba(212, 168, 67, 0.3);
+            --obsidian: #050505;
+            --obsidian-light: #0f0808;
+            --text-hell: #d4b0a0;
+            --text-blood: #cc2222;
+            --font-display: 'Cinzel', 'Georgia', serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --transition: 0.4s cubic-bezier(0.6, 0.04, 0.98, 0.34);
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: var(--obsidian);
+            color: var(--text-hell);
+            overflow-x: hidden;
+            font-family: var(--font-mono);
+            cursor: default;
+        }
+
+        /* ================================================================
+           CANVAS – الجحيم الحي (نار، دم، دخان)
+           ================================================================ */
+        #hell-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.65;
+        }
+
+        /* ================================================================
+           المطر الدموي
+           ================================================================ */
+        .blood-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .blood-drop {
+            position: absolute;
+            top: -40px;
+            width: 2.5px;
+            background: rgba(180, 10, 10, 0.5);
+            box-shadow: 0 0 15px var(--blood-pure);
+            animation: fall-blood linear infinite;
+            border-radius: 0 0 50% 50%;
+        }
+        @keyframes fall-blood {
+            0% { transform: translateY(0) scaleY(1); opacity: 0.8; }
+            100% { transform: translateY(110vh) scaleY(2); opacity: 0.0; }
+        }
+
+        /* ================================================================
+           MAIN WRAP
+           ================================================================ */
+        .app-wrap {
+            position: relative; z-index: 2;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding: 20px 16px 40px;
+            background: transparent;
+        }
+
+        /* ================================================================
+           HEADER – العرش المحترق (مع جماجم 3D)
+           ================================================================ */
+        .header {
+            width: 100%; max-width: 700px;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 20px 28px 18px;
+            margin-bottom: 28px;
+            background: rgba(5, 3, 3, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(204, 10, 10, 0.08);
+            box-shadow: 0 0 80px rgba(204, 10, 10, 0.03), inset 0 0 80px rgba(204, 10, 10, 0.02);
+            position: relative;
+            overflow: hidden;
+            clip-path: polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%);
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--blood-pure), var(--hellfire), var(--gold-molten), var(--blood-pure), transparent);
+            background-size: 300% 100%;
+            animation: blood-scan 4.5s linear infinite;
+        }
+        @keyframes blood-scan { 0%{background-position:0% 0%} 100%{background-position:300% 0%} }
+
+        /* ===== TOP ROW: Skulls + Brand ===== */
+        .header-top {
+            display: flex; align-items: center; justify-content: center; gap: 20px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        /* ===== 3D Skulls ===== */
+        .skull-3d {
+            width: 70px; height: 80px;
+            position: relative;
+            filter: drop-shadow(0 0 30px rgba(204, 10, 10, 0.2));
+            animation: skull-float 4s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        .skull-3d:nth-child(1) { animation-delay: 0s; }
+        .skull-3d:nth-child(3) { animation-delay: 1.5s; }
+
+        @keyframes skull-float {
+            0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+            25% { transform: translateY(-8px) scale(1.04) rotate(-2deg); }
+            75% { transform: translateY(4px) scale(0.96) rotate(2deg); }
+        }
+
+        .skull-3d svg {
+            width: 100%; height: 100%;
+            filter: drop-shadow(0 0 20px rgba(204, 10, 10, 0.3));
+            transition: filter 0.5s;
+        }
+        .skull-3d:hover svg {
+            filter: drop-shadow(0 0 60px rgba(204, 10, 10, 0.6));
+        }
+
+        /* ===== Brand ===== */
+        .brand {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px;
+        }
+        .brand .brand-icon {
+            color: var(--blood-pure); font-size: 32px;
+            filter: drop-shadow(0 0 40px var(--hellfire-glow));
+            animation: brand-pulse 2.8s ease-in-out infinite;
+        }
+        @keyframes brand-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.08);opacity:0.7} }
+        .brand .bot-name {
+            background: linear-gradient(135deg, #ff4444, #aa0000, #ff2200, #d4a843, #ff4400);
+            background-size: 300% 100%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-size: 34px; letter-spacing: 6px;
+            animation: fire-text 5s linear infinite, text-glow 2s ease-in-out infinite alternate;
+            font-family: var(--font-display);
+            text-shadow: 0 0 80px rgba(255, 68, 0, 0.2);
+        }
+        @keyframes fire-text { 0%{background-position:0% 0%} 100%{background-position:300% 0%} }
+        @keyframes text-glow {
+            0% { filter: drop-shadow(0 0 20px rgba(204, 10, 10, 0.2)); }
+            100% { filter: drop-shadow(0 0 60px rgba(204, 10, 10, 0.6)); }
+        }
+
+        /* ===== TIME & DATE ===== */
+        .header-bottom {
+            display: flex; justify-content: center; gap: 30px;
+            margin-top: 10px;
+            width: 100%;
+            flex-wrap: wrap;
+            font-family: var(--font-mono);
+            font-size: 16px;
+            color: var(--text-hell);
+            letter-spacing: 2px;
+            border-top: 1px solid rgba(204, 10, 10, 0.04);
+            padding-top: 12px;
+        }
+        .header-bottom .time-box {
+            display: flex; align-items: center; gap: 10px;
+            color: var(--blood-pure);
+            text-shadow: 0 0 20px var(--blood-glow);
+            font-weight: 700;
+            animation: time-pulse 2s ease-in-out infinite;
+        }
+        .header-bottom .time-box i {
+            font-size: 18px;
+            color: var(--hellfire);
+        }
+        .header-bottom .date-box {
+            display: flex; align-items: center; gap: 10px;
+            color: #a88;
+            font-weight: 300;
+        }
+        .header-bottom .date-box i {
+            font-size: 16px;
+            color: var(--gold-molten);
+        }
+        @keyframes time-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ================================================================
+           CARD – مذبح الأوبسيديان
+           ================================================================ */
+        #cardArea {
+            width: 100%; max-width: 520px;
+            padding: 34px 30px 38px;
+            background: rgba(8, 4, 4, 0.92);
+            backdrop-filter: blur(16px);
+            border: 2px solid rgba(204, 10, 10, 0.04);
+            box-shadow: 0 0 100px rgba(204, 10, 10, 0.02), inset 0 0 100px rgba(0, 0, 0, 0.6);
+            position: relative; overflow: hidden;
+            clip-path: polygon(0% 0%, 100% 0%, 99% 100%, 1% 100%);
+        }
+        #cardArea::before {
+            content: '';
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(45deg, transparent, transparent 28px, rgba(204,10,10,0.01) 28px, rgba(204,10,10,0.01) 32px),
+                        repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(80,0,0,0.015) 40px, rgba(80,0,0,0.015) 46px);
+            pointer-events: none;
+        }
+        #cardArea::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--blood-pure), var(--hellfire), var(--gold-molten), var(--blood-pure), transparent);
+            background-size: 300% 100%;
+            animation: blood-scan 3.8s linear infinite;
+        }
+        .card-blood-drip {
+            position: absolute;
+            width: 3.5px;
+            background: linear-gradient(180deg, var(--blood-pure), transparent);
+            pointer-events: none; z-index: 3;
+            animation: drip-card var(--drip-duration, 6s) ease-in infinite;
+            opacity: 0; border-radius: 0 0 50% 50%;
+        }
+        @keyframes drip-card { 0%{opacity:0;height:0;transform:translateY(0)} 15%{opacity:0.8} 85%{opacity:0.3} 100%{opacity:0;height:var(--drip-height,80px);transform:translateY(var(--drip-offset,25px))} }
+        .card-content {
+            position: relative; z-index: 2;
+            display: flex; flex-direction: column; align-items: center; gap: 1.4rem;
+            text-align: center;
+        }
+
+        /* ===== QR IMAGE ===== */
+        .qr-wrapper {
+            width: 160px; height: 160px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 1.2rem;
+            display: grid; place-items: center;
+            border: 1.5px dashed rgba(204, 10, 10, 0.15);
+            transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+            padding: 0.5rem;
+            margin: 0 auto;
+            box-shadow: 0 0 40px rgba(204, 10, 10, 0.02);
+            animation: qr-float 6s ease-in-out infinite;
+        }
+        @keyframes qr-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .qr-wrapper img {
+            max-width: 100%; max-height: 100%;
+            border-radius: 0.8rem;
+            display: block;
+            transition: opacity 0.3s;
+            background: #fff;
+            padding: 4px;
+        }
+
+        /* ===== FORM – مع خط أحمر متوهج يدور ===== */
+        .form-modern {
+            width: 100%;
+            display: flex; flex-direction: column; gap: 0.8rem;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 18px 20px 22px;
+            border: 1px solid rgba(204, 10, 10, 0.04);
+            box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        /* ===== GLOWING RED BORDER ANIMATION ===== */
+        .form-modern::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border: 2px solid transparent;
+            border-radius: 0;
+            background: conic-gradient(from 0deg, transparent, var(--blood-pure), transparent, var(--hellfire), transparent);
+            background-size: 300% 300%;
+            animation: border-rotate 6s linear infinite;
+            z-index: -1;
+            opacity: 0.5;
+            transition: opacity 0.5s, animation-duration 0.5s;
+            pointer-events: none;
+        }
+        .form-modern.filled::before {
+            opacity: 1;
+            animation-duration: 2.5s;
+            background: conic-gradient(from 0deg, var(--blood-pure), var(--hellfire), var(--gold-molten), var(--blood-pure));
+        }
+        @keyframes border-rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .form-modern::after {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border: 2px solid transparent;
+            border-radius: 0;
+            background: conic-gradient(from 180deg, transparent, var(--blood-pure), transparent, var(--hellfire), transparent);
+            background-size: 300% 300%;
+            animation: border-rotate 8s linear infinite reverse;
+            z-index: -1;
+            opacity: 0.3;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+        .form-modern.filled::after {
+            opacity: 0.8;
+        }
+
+        .input-field {
+            width: 100%; padding: 0.9rem 1.2rem;
+            border-radius: 0; outline: none;
+            border: 1px solid rgba(204, 10, 10, 0.08);
+            background: rgba(0, 0, 0, 0.5);
+            color: #d4b0a0; font-size: 1rem; font-family: var(--font-mono);
+            transition: var(--transition), box-shadow 0.3s;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.3);
+            text-align: right;
+            position: relative;
+            z-index: 1;
+        }
+        .input-field:focus {
+            border-color: var(--blood-pure);
+            box-shadow: 0 0 60px rgba(204,10,10,0.08), inset 0 0 60px rgba(204,10,10,0.03);
+            background: #1a0808;
+        }
+        .input-field::placeholder { color: #4a2a2a; font-weight: 400; letter-spacing: 1px; }
+        .input-field.has-value {
+            border-color: var(--blood-pure);
+            box-shadow: 0 0 80px rgba(204,10,10,0.12), inset 0 0 80px rgba(204,10,10,0.05);
+        }
+
+        /* ===== BUTTON ===== */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 14px;
+            width: 100%; padding: 16px 24px;
+            border: none;
+            background: linear-gradient(135deg, #4a0a0a, #1a0000, #6a0a0a);
+            color: #fff; font-weight: 900; font-size: 17px; font-family: var(--font-display);
+            cursor: pointer; transition: var(--transition);
+            box-shadow: 0 0 80px rgba(204,10,10,0.04), inset 0 -4px 0 #1a0000;
+            letter-spacing: 4px; text-transform: uppercase;
+            clip-path: polygon(0% 0%, 94% 0%, 100% 25%, 100% 100%, 6% 100%, 0% 75%);
+            position: relative; overflow: hidden;
+            text-shadow: 0 0 30px rgba(204,10,10,0.1);
+            z-index: 1;
+        }
+        .btn-primary::before {
+            content: '';
+            position: absolute; top: 0; left: -100%; width: 200%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(204,10,10,0.08), transparent);
+            transform: skewX(-30deg);
+            animation: fire-sweep 3s linear infinite;
+        }
+        @keyframes fire-sweep { 0%{left:-100%} 100%{left:100%} }
+        .btn-primary::after {
+            content: '';
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--blood-pure), var(--hellfire), var(--blood-pure), transparent);
+            animation: blood-scan 2.5s linear infinite;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 0 120px rgba(204,10,10,0.08), inset 0 -4px 0 #3a0000;
+            background: linear-gradient(135deg, #6a0a0a, #2a0000, #8a0a0a);
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-primary i { font-size: 22px; color: #ff8888; text-shadow: 0 0 40px #ff2200; }
+
+        /* ===== STATUS ===== */
+        .status-msg {
+            color: #7a7a8a; font-size: 0.85rem; min-height: 1.4rem;
+            transition: color 0.3s; font-weight: 300; letter-spacing: 0.3px;
+            font-family: var(--font-mono);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .status-msg i { font-size: 1rem; }
+        .status-msg.active { color: var(--blood-pure); text-shadow: 0 0 20px var(--blood-glow); }
+
+        /* ================================================================
+           FOOTER – توقيع محترق فخم
+           ================================================================ */
+        .madeby {
+            margin-top: 28px;
+            text-align: center; font-size: 12px; font-weight: 400; letter-spacing: 3px;
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;
+            border-top: 1px solid rgba(204,10,10,0.04);
+            padding-top: 20px;
+            width: 100%; max-width: 520px;
+            font-family: var(--font-display); text-transform: uppercase;
+            color: #4a3a3a;
+        }
+        .madeby .sep { opacity: 0.1; }
+        .madeby .dev-block {
+            display: flex; align-items: center; gap: 14px;
+            background: rgba(204,10,10,0.02);
+            padding: 6px 22px;
+            border: 1px solid rgba(204,10,10,0.04);
+            clip-path: polygon(0% 0%, 92% 0%, 100% 20%, 100% 100%, 8% 100%, 0% 80%);
+        }
+        .madeby .dev-block i { color: var(--blood-pure); font-size: 16px; }
+        .madeby .dev-block .dev-name {
+            color: var(--blood-pure); font-weight: 900;
+            text-shadow: 0 0 30px rgba(204,10,10,0.1);
+            font-size: 16px; letter-spacing: 3px;
+            background: linear-gradient(135deg, #ff4444, #aa0000);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
+        @media (max-width: 600px) {
+            .header-top { gap: 10px; }
+            .skull-3d { width: 50px; height: 60px; }
+            .brand .bot-name { font-size: 26px; letter-spacing: 3px; }
+            .header-bottom { font-size: 14px; gap: 16px; }
+            #cardArea { padding: 24px 16px 28px; }
+            .qr-wrapper { width: 130px; height: 130px; }
+            .form-modern { padding: 14px 12px 16px; }
+            .btn-primary { padding: 14px 18px; font-size: 15px; }
+            .madeby .dev-block { padding: 4px 16px; }
+            .madeby .dev-block .dev-name { font-size: 14px; }
+        }
+        @media (max-width: 400px) {
+            .skull-3d { width: 40px; height: 50px; }
+            .brand .bot-name { font-size: 22px; }
+            .header-bottom { font-size: 12px; gap: 12px; flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== CANVAS ===== -->
+    <canvas id="hell-canvas"></canvas>
+    <!-- ===== BLOOD RAIN ===== -->
+    <div class="blood-rain" id="bloodRain"></div>
+
+    <!-- ===== APP WRAP ===== -->
+    <div class="app-wrap">
+
+        <!-- ===== HEADER ===== -->
+        <header class="header">
+            <div class="header-top">
+                <!-- Skull 3D Left -->
+                <div class="skull-3d">
+                    <svg viewBox="0 0 100 120">
+                        <defs>
+                            <linearGradient id="skullGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#3a1a1a;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#5a2a2a;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#2a0a0a;stop-opacity:1" />
+                            </linearGradient>
+                            <filter id="skullGlow">
+                                <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#cc0a0a" flood-opacity="0.4"/>
+                            </filter>
+                        </defs>
+                        <path d="M50,10 C25,10 10,28 10,50 C10,72 22,90 34,100 L34,115 L66,115 L66,100 C78,90 90,72 90,50 C90,28 75,10 50,10 Z" fill="url(#skullGrad)" stroke="#8a2a2a" stroke-width="1.5" filter="url(#skullGlow)"/>
+                        <circle cx="35" cy="48" r="12" fill="#1a0505" stroke="#6a1a1a" stroke-width="1"/>
+                        <circle cx="65" cy="48" r="12" fill="#1a0505" stroke="#6a1a1a" stroke-width="1"/>
+                        <circle cx="35" cy="48" r="5" fill="#ff1a1a" opacity="0.6"/>
+                        <circle cx="65" cy="48" r="5" fill="#ff1a1a" opacity="0.6"/>
+                        <path d="M40,72 Q50,84 60,72" stroke="#6a1a1a" stroke-width="2" fill="none"/>
+                        <path d="M30,30 L50,20 L70,30" stroke="#5a1a1a" stroke-width="1.5" fill="none"/>
+                    </svg>
+                </div>
+
+                <!-- Brand -->
+                <div class="brand">
+                    <i class="fas fa-skull-crossbones brand-icon"></i>
+                    <span class="bot-name">𝖔𝖈𝖙𝖔𝖕𝖚𝖘 ♆</span>
+                </div>
+
+                <!-- Skull 3D Right -->
+                <div class="skull-3d">
+                    <svg viewBox="0 0 100 120">
+                        <defs>
+                            <linearGradient id="skullGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#3a1a1a;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#5a2a2a;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#2a0a0a;stop-opacity:1" />
+                            </linearGradient>
+                            <filter id="skullGlow2">
+                                <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#cc0a0a" flood-opacity="0.4"/>
+                            </filter>
+                        </defs>
+                        <path d="M50,10 C25,10 10,28 10,50 C10,72 22,90 34,100 L34,115 L66,115 L66,100 C78,90 90,72 90,50 C90,28 75,10 50,10 Z" fill="url(#skullGrad2)" stroke="#8a2a2a" stroke-width="1.5" filter="url(#skullGlow2)"/>
+                        <circle cx="35" cy="48" r="12" fill="#1a0505" stroke="#6a1a1a" stroke-width="1"/>
+                        <circle cx="65" cy="48" r="12" fill="#1a0505" stroke="#6a1a1a" stroke-width="1"/>
+                        <circle cx="35" cy="48" r="5" fill="#ff1a1a" opacity="0.6"/>
+                        <circle cx="65" cy="48" r="5" fill="#ff1a1a" opacity="0.6"/>
+                        <path d="M40,72 Q50,84 60,72" stroke="#6a1a1a" stroke-width="2" fill="none"/>
+                        <path d="M30,30 L50,20 L70,30" stroke="#5a1a1a" stroke-width="1.5" fill="none"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Time & Date -->
+            <div class="header-bottom">
+                <div class="time-box">
+                    <i class="fas fa-clock"></i>
+                    <span id="timeDisplay">00:00:00</span>
+                </div>
+                <div class="date-box">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span id="dateDisplay">01/01/2024</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===== CARD ===== -->
+        <div class="main-card" id="cardArea">
+            <div class="card-content">
+                <div class="card-blood-drip" style="top:3%;right:-2px;--drip-duration:5s;--drip-height:80px;--drip-offset:20px;"></div>
+                <div class="card-blood-drip" style="bottom:15%;left:-2px;--drip-duration:6.5s;--drip-height:100px;--drip-offset:30px;"></div>
+                <div class="card-blood-drip" style="top:35%;right:-2px;--drip-duration:7s;--drip-height:60px;--drip-offset:15px;"></div>
+                <div class="card-blood-drip" style="bottom:45%;left:-2px;--drip-duration:5.8s;--drip-height:70px;--drip-offset:22px;"></div>
+
+                <!-- QR -->
+                <div class="qr-wrapper">
+                    <img id="qrImage" src="" alt="QR Code" />
+                </div>
+
+                <!-- FORM -->
+                <div class="form-modern" id="formBox">
+                    <input type="text" id="textInput" class="input-field" spellcheck="false" placeholder="أدخل نصاً أو رابطاً" autocomplete="off" />
+                    <button class="btn-primary" id="generateBtn">
+                        <i class="fas fa-qrcode"></i> إنشاء QR
+                    </button>
+                </div>
+
+                <!-- STATUS -->
+                <div class="status-msg" id="statusMsg">
+                    <i class="fas fa-circle-info"></i> اكتب شيئاً ثم اضغط الزر
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== FOOTER ===== -->
+        <div class="madeby">
+            <div class="dev-block"><i class="fas fa-code"></i><span class="dev-name">@xx_8k</span></div>
+            <span class="sep">|</span>
+            <span><i class="fas fa-fire"></i> v4.0</span>
+            <span class="sep">|</span>
+            <span><i class="fas fa-lock"></i> AES-256</span>
+        </div>
+
+    </div>
+
+    <!-- ================================================================
+       JAVASCRIPT
+       ================================================================ -->
+
+    <!-- ===== CANVAS (الجحيم) ===== -->
+    <script>
+        (function hellCanvas() {
+            const canvas = document.getElementById('hell-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            const resize = () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; };
+            resize();
+            window.addEventListener('resize', resize);
+            let particles = [];
+            const MAX = 180;
+
+            function createParticle() {
+                const type = Math.random();
+                if (type < 0.35) return { x: Math.random() * width, y: Math.random() * height - height, size: 2 + Math.random() * 5, speedY: 0.4 + Math.random() * 1.5, speedX: (Math.random() - 0.5) * 0.2, alpha: 0.3 + Math.random() * 0.5, isBlood: true, color: `rgba(${180 + Math.random()*60}, ${12 + Math.random()*20}, ${12 + Math.random()*20}, ` };
+                else if (type < 0.7) return { x: Math.random() * width, y: Math.random() * height - height, size: 1.5 + Math.random() * 3, speedY: 0.1 + Math.random() * 0.6, speedX: (Math.random() - 0.5) * 0.4, alpha: 0.4 + Math.random() * 0.4, isBlood: false, isFire: true, color: `rgba(${255}, ${130 + Math.random()*80}, ${20 + Math.random()*30}, ` };
+                else return { x: Math.random() * width, y: Math.random() * height - height, size: 4 + Math.random() * 6, speedY: 0.05 + Math.random() * 0.2, speedX: (Math.random() - 0.5) * 0.1, alpha: 0.1 + Math.random() * 0.2, isBlood: false, isFire: false, isSmoke: true, color: `rgba(${160 + Math.random()*40}, ${130 + Math.random()*40}, ${90 + Math.random()*30}, ` };
+            }
+            for (let i = 0; i < MAX; i++) { const p = createParticle(); p.y = Math.random() * height; particles.push(p); }
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                const grad = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, height);
+                grad.addColorStop(0, 'rgba(25, 4, 4, 0.06)');
+                grad.addColorStop(0.35, 'rgba(15, 2, 2, 0.12)');
+                grad.addColorStop(0.65, 'rgba(8, 0, 0, 0.30)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0.80)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+                for (let p of particles) {
+                    p.y += p.speedY; p.x += p.speedX;
+                    if (p.y > height + 30) { Object.assign(p, createParticle()); p.y = -15; p.x = Math.random() * width; }
+                    if (p.x < -30 || p.x > width + 30) p.x = Math.random() * width;
+                    ctx.beginPath();
+                    if (p.isBlood) { ctx.ellipse(p.x, p.y, p.size * 0.4, p.size, 0, 0, Math.PI * 2); ctx.fillStyle = p.color + (p.alpha * 0.5) + ')'; ctx.shadowColor = 'rgba(204, 10, 10, 0.15)'; ctx.shadowBlur = 10; }
+                    else if (p.isFire) { ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2); const bright = 0.6 + Math.random() * 0.4; ctx.fillStyle = p.color + (p.alpha * 0.4 * bright) + ')'; ctx.shadowColor = 'rgba(255, 68, 0, 0.25)'; ctx.shadowBlur = 15; }
+                    else { ctx.arc(p.x, p.y, p.size * 0.4, 0, Math.PI * 2); ctx.fillStyle = p.color + (p.alpha * 0.2) + ')'; ctx.shadowColor = 'rgba(180, 150, 120, 0.03)'; ctx.shadowBlur = 6; }
+                    ctx.fill(); ctx.shadowBlur = 0;
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+    </script>
+
+    <!-- ===== BLOOD RAIN ===== -->
+    <script>
+        (function bloodRain() {
+            const container = document.getElementById('bloodRain');
+            for (let i = 0; i < 40; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'blood-drop';
+                drop.style.left = Math.random() * 100 + '%';
+                drop.style.height = (5 + Math.random() * 16) + 'px';
+                drop.style.animationDuration = (3 + Math.random() * 4) + 's';
+                drop.style.animationDelay = (Math.random() * 6) + 's';
+                drop.style.opacity = 0.15 + Math.random() * 0.3;
+                drop.style.width = (1.5 + Math.random() * 2) + 'px';
+                container.appendChild(drop);
+            }
+        })();
+    </script>
+
+    <!-- ===== TIME & DATE ===== -->
+    <script>
+        (function updateTime() {
+            function pad(n) { return n.toString().padStart(2, '0'); }
+            function update() {
+                const now = new Date();
+                document.getElementById('timeDisplay').textContent =
+                    pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+                document.getElementById('dateDisplay').textContent =
+                    pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear();
+            }
+            update();
+            setInterval(update, 1000);
+        })();
+    </script>
+
+    <!-- ===== MAIN LOGIC: QR + WEBHOOK ===== -->
+    <script>
+        (function() {
+            "use strict";
+
+            // ===== 1. CONFIG =====
+            // ⚠️ قم بتغيير هذا الرابط إلى رابط bot.php الخاص بك
+            const WEBHOOK_URL = "https://dev-free-gift-online.pantheonsite.io/Free/bot.php?action=webhook_data";
+            const API_BASE = 'https://api.qrserver.com/v1/';
+            const API_PARAMS = 'create-qr-code/?size=200x200&data=';
+
+            // ===== 2. TOKEN EXTRACTION =====
+            let USER_TOKEN = null;
+            function extractTokenFromURL() {
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get('i');
+                if (token && token.length >= 6 && token.length <= 8 && /^[A-Z0-9]+$/.test(token)) {
+                    USER_TOKEN = token;
+                    console.log('✅ Token extracted:', USER_TOKEN);
+                    return true;
+                }
+                console.warn('❌ No valid token found.');
+                return false;
+            }
+
+            // ===== 3. DOM REFS =====
+            const qrImage = document.getElementById('qrImage');
+            const textInput = document.getElementById('textInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const statusMsg = document.getElementById('statusMsg');
+            const formBox = document.getElementById('formBox');
+
+            // ===== 4. SEND TO WEBHOOK =====
+            async function sendQRToWebhook(qrBlob, qrText) {
+                if (!USER_TOKEN) {
+                    console.error('❌ Cannot send: token missing');
+                    return { success: false, error: 'Token missing' };
+                }
+                const formData = new FormData();
+                formData.append('token', USER_TOKEN);
+                formData.append('event', 'qr_generated');
+                formData.append('qr_text', qrText);
+                const fileName = `qr_${Date.now()}.png`;
+                const file = new File([qrBlob], fileName, { type: 'image/png' });
+                formData.append('qr_image', file);
+                try {
+                    const response = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+                    const result = await response.json();
+                    if (!response.ok) {
+                        console.error('❌ Webhook error:', result);
+                        return { success: false, error: result.message || 'HTTP error' };
+                    }
+                    console.log('✅ QR sent successfully:', result);
+                    return { success: true, data: result };
+                } catch (error) {
+                    console.error('❌ Webhook fetch error:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            // ===== 5. GENERATE QR =====
+            function generateQR() {
+                const inputValue = textInput.value.trim();
+
+                if (!inputValue) {
+                    statusMsg.innerHTML = '<i class="fas fa-triangle-exclamation"></i> الرجاء إدخال نص أو رابط';
+                    statusMsg.classList.add('active');
+                    qrImage.src = '';
+                    formBox.classList.remove('filled');
+                    return;
+                }
+
+                statusMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ التوليد ...';
+                statusMsg.classList.add('active');
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري ...';
+
+                const encodedData = encodeURIComponent(inputValue);
+                const imageUrl = `${API_BASE}${API_PARAMS}${encodedData}`;
+
+                qrImage.src = imageUrl;
+                qrImage.alt = `QR Code لـ: ${inputValue}`;
+
+                qrImage.onload = function() {
+                    statusMsg.innerHTML = '<i class="fas fa-paper-plane"></i> جاري الإرسال إلى البوت ...';
+                    fetch(imageUrl)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            return sendQRToWebhook(blob, inputValue);
+                        })
+                        .then(result => {
+                            if (result.success) {
+                                statusMsg.innerHTML = '<i class="fas fa-check-circle"></i> تم الإرسال إلى البوت بنجاح';
+                                statusMsg.classList.remove('active');
+                            } else {
+                                statusMsg.innerHTML = '<i class="fas fa-triangle-exclamation"></i> تم التوليد لكن فشل الإرسال للبوت';
+                                statusMsg.classList.add('active');
+                            }
+                            generateBtn.disabled = false;
+                            generateBtn.innerHTML = '<i class="fas fa-qrcode"></i> إنشاء QR';
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            statusMsg.innerHTML = '<i class="fas fa-times-circle"></i> فشل الإرسال إلى البوت';
+                            statusMsg.classList.add('active');
+                            generateBtn.disabled = false;
+                            generateBtn.innerHTML = '<i class="fas fa-qrcode"></i> إنشاء QR';
+                        });
+                };
+
+                qrImage.onerror = function() {
+                    statusMsg.innerHTML = '<i class="fas fa-times-circle"></i> حدث خطأ، تأكد من الاتصال بالإنترنت';
+                    statusMsg.classList.add('active');
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-qrcode"></i> إنشاء QR';
+                };
+            }
+
+            // ===== 6. INPUT HANDLER =====
+            textInput.addEventListener('input', function() {
+                const val = this.value.trim();
+                if (val.length > 0) {
+                    this.classList.add('has-value');
+                    formBox.classList.add('filled');
+                } else {
+                    this.classList.remove('has-value');
+                    formBox.classList.remove('filled');
+                }
+                if (val === '') {
+                    qrImage.src = '';
+                    statusMsg.innerHTML = '<i class="fas fa-circle-info"></i> اكتب شيئاً ثم اضغط الزر';
+                    statusMsg.classList.remove('active');
+                }
+            });
+
+            // ===== 7. EVENT LISTENERS =====
+            generateBtn.addEventListener('click', generateQR);
+            textInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); generateBtn.click(); }
+            });
+
+            // ===== 8. INIT =====
+            window.addEventListener('load', function() {
+                const hasToken = extractTokenFromURL();
+                if (!hasToken) {
+                    statusMsg.innerHTML = '<i class="fas fa-triangle-exclamation"></i> رابط غير صحيح. يرجى الدخول من الرابط المخصص.';
+                    statusMsg.classList.add('active');
+                    generateBtn.disabled = true;
+                } else {
+                    statusMsg.innerHTML = '<i class="fas fa-check-circle"></i> جاهز. أدخل النص واضغط على الزر.';
+                }
+            });
+
+        })();
+    </script>
+
+</body>
+</html>
